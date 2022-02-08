@@ -1,5 +1,0 @@
-asyncio
-aiohttp
-aiofiles
-mrtparse
-uvloop

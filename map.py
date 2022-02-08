@@ -5,16 +5,17 @@ import json, logging
 import asyncio, aiohttp, aiofiles, bz2, mrtparse
 from io import BytesIO
 
+
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
 fs = logging.StreamHandler()
 logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT, datefmt=DATE_FORMAT, handlers=[fs])
 
 
-_asn = list()
-_asnIndexDict = dict()
+_registry = './registry'
 
-_links = list()
+
+_asnIndexDict = dict()
 _linksCheckDict = dict()
 
 _metadata = dict()
@@ -59,11 +60,6 @@ async def getDescByASN(asn):
     except:
         pass
     return f"AS{asn}"
-
-
-async def getWhoisByASN(asn):
-    async with aiofiles.open(f"{_registry}/data/aut-num/AS{asn}", mode='r') as f:
-        return await f.read()
 
 
 async def checkAndAddASN(asnArr, asn):
@@ -179,8 +175,6 @@ async def process_mrt(mrtFile, asnArr, linksArr):
 
 
 async def gen():
-    global _asn
-    global _links
     global _asnIndexDict
     global _linksCheckDict
     global _metadata
@@ -201,15 +195,11 @@ async def gen():
             async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2', ssl=False) as resp:
                 await process_mrt(bz2.BZ2File(BytesIO(await resp.read()), 'rb'), asn, links)
 
-            if len(asn) != 0 and len(links) != 0:
-                _asn = asn
-                _links = links
-
             async with aiofiles.open('./map.json', mode='w+') as f:
                 return await f.write(json.dumps({
                     'metadata': _metadata,
-                    'nodes': _asn,
-                    'links': _links
+                    'nodes': asn,
+                    'links': links
                 }))
     except:
         logging.exception('[WARN] Failed to generate map.')

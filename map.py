@@ -190,10 +190,12 @@ async def gen():
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get('https://mrt.kuu.moe/master4_latest.mrt.bz2', ssl=False) as resp:
-                await process_mrt(bz2.BZ2File(BytesIO(await resp.read()), 'rb'), asn, links)
+                master4 = await resp.read()
+                await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
 
             async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2', ssl=False) as resp:
-                await process_mrt(bz2.BZ2File(BytesIO(await resp.read()), 'rb'), asn, links)
+                master6 = await resp.read()
+                await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
 
             async with aiofiles.open('./map.json', mode='w+') as f:
                 return await f.write(json.dumps({

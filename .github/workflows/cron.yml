@@ -38,7 +38,7 @@ jobs:
           git config user.email "bot@github.com"
           git config user.name "bot"
           git fetch --unshallow
-          git reset --hard _____
+          git reset --hard 59696cbdf98b9db4acee061fdee27f9825963598
           git clean -fxd :/
           popd
           bash gen.sh

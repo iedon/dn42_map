@@ -86,6 +86,7 @@ function hints_on(t)
 		dbg = 0;
 	}
 	$('#hint').fadeIn(400, 'swing');
+	$('#nav').fadeIn(400, 'swing');
 	if ( t )
 	{
 		if (hst)
@@ -96,12 +97,13 @@ function hints_on(t)
 
 function hints_off()
 {
+	$('#nav').fadeOut(250, 'swing');
 	$('#hint').fadeOut(250, 'swing');
 }
 
 function toggle_hints() {
 	if ($('#hint').css('display') == "none")
-		hints_on(30000);
+		hints_on(5000); /* change nav and hint display time */
 	else
 		hints_off();
 }

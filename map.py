@@ -66,11 +66,9 @@ async def checkAndAddASN(asnArr, asn):
     if asn in _asnIndexDict:
         return
     try:
-        routes = _advertises[asn] if asn in _advertises else []
         asnArr.append({
             'group': 1,
             'asn': int(asn),
-            'routes': routes,
             'desc': await getDescByASN(asn)
         })
         _asnIndexDict[asn] = len(asnArr) - 1
@@ -105,8 +103,8 @@ def process_entry(entry: mrtparse.Reader) -> dict:
     subtype = list(entry.get('subtype', [None, "None"]).keys())[0]
     if subtype == 1:
         _metadata = {
-            'timestamp': entry['timestamp'][0],
-            'time': entry['timestamp'][1],
+            'timestamp': list(entry['timestamp'].keys())[0],
+            'time': list(entry['timestamp'].values())[0],
         }
         return None
     elif subtype in {2, 8, 4, 10}:
@@ -196,6 +194,8 @@ async def gen():
             async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2', ssl=False) as resp:
                 master6 = await resp.read()
                 await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
+
+            for e in asn: e['routes'] = _advertises[str(e['asn'])] if str(e['asn']) in _advertises else []
 
             async with aiofiles.open('./map.json', mode='w+') as f:
                 return await f.write(json.dumps({

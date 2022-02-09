@@ -20,7 +20,7 @@ $(document).ready(function() {
 	if (!isNaN(sel_f))
 		cvfr = sel_f;
 
-	$('#lnfo').html('Initializing..');
+	$('#lnfo').html('Initializing...');
 
 	setTimeout(post_init, init_delay);
 });

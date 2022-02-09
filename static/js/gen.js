@@ -12,7 +12,7 @@ function azoom() {
 }
 
 function calc_node_size(b, d) {
-	return b + (asdb[d].length / 6);
+	return b + (asdb[d].length / 12 /* change to throttle max round */);
 }
 function calc_img_size(b, d) {
 	return -(b + (asdb[d].length / 25));
@@ -62,6 +62,7 @@ function gen() {
 	force_apply();
 
 	d3.json(aspath, function(json) {
+		aspathData = json;
 		timestamp = json.metadata.timestamp;
 		var n = json.nodes.length;
 		force.nodes(json.nodes).links(json.links);
@@ -125,19 +126,22 @@ function gen() {
 				return calc_node_size(8, d.asn);
 			})
 
-		node.append("text").attr("dx", 12)
+		node.append("text").attr("dx", 15)
 			.attr("id", function(d) {
 				return '_' + d.desc;
 			})
 			.attr("class", "ntx")
-			.attr("dy", 5) /* 0 */
+			.attr("dy", 4) /* 0 */
 			.style("fill", "#eee")
-			.style("font-size", "16px")
+			.style("font-size", "14px")
 			.style("font-weight", "bold")
 			.attr("class", "at")
 			.text(function(d) {
-				return d.desc.replace('-DN42', '').replace('-MNT', '').replace('-AS', '');
-			}) //.call(azoom);
+				var str = d.desc.replace('-DN42', '').replace('-MNT', '').replace('-AS', '');
+				if (str.length > 10) str = str.substr(0, 8) + '_'; 
+				return str;
+			}).style("text-shadow", "0 0 0 #000, 1px 1px 2px #000")
+			//.call(azoom);
 
 /*
 		node.append("text").attr("dx", 12)

@@ -95,29 +95,38 @@ function dasn(n, v, t) {
 	if (idcache[n]) {
 		$('.wnfo').html(idcache[n]);
 	} else {
-		$('.wnfo').html('Loading whois..');
+		$('.wnfo').html('Loading whois...');
+		var cidrs = '';
+		try {
+			var i = aspathData.nodes.findIndex(e => e.asn === n);
+			if (i !== -1) {
+				cidrs = aspathData.nodes[i].desc + '(' + n + ')<br /><br />Observed routes:<br />';
+				aspathData.nodes[i].routes.forEach(cidr => { cidrs += cidr + '<br />' })
+				cidrs += '<br />';
+			}
+		} catch {}
 		$.ajax({
 			type: "POST",
-			url: host + "/whois",
+			url: "https://api.kuu.moe/service/dn42/whois",
 			dataType: 'json',
 			contentType: "application/json",
 			data: JSON.stringify({ asn: n }),
 			cache: true,
 			success: function(data) {
 				if (!data.whois) {
-					$('.wnfo').html('Error querying whois api');
+					$('.wnfo').html(cidrs + 'Error querying whois api');
 				} else {
 					var url_regex = /(http:\/\/|https:\/\/)((\w|=|\?|\.|\/|&|-)+)/g;
 					data.whois = data.whois.replace(url_regex, "<a href='$1$2' target='_blank'>$1$2</a>").replace(/\n/g, "<br/>");
 					_prefix = '<pre><a href="' + explorerHost + n + '" target="_blank">View all objects at Collector</a><br/>'
-					_suffix = '</pre>'
-					proceed = _prefix + data.whois + _suffix;
+					_suffix = '</pre>';
+					proceed = _prefix + cidrs + data.whois + _suffix;
 					$('.wnfo').html(proceed);
 					idcache[n] = proceed;
 				}
 			},
 			error: function() {
-				$('.wnfo').html('Error querying whois api');
+				$('.wnfo').html(cidrs + 'Error querying whois api');
 			}
 		});
 	}

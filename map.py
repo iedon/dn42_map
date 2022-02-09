@@ -102,7 +102,7 @@ def process_entry(entry: mrtparse.Reader) -> dict:
         logging.exception("{entry.err=} {entry.err_msg=} {entry.buf=}")
         return None
     entry = entry.data
-    subtype = entry.get('subtype', [None, "None"])[0]
+    subtype = list(entry.get('subtype', [None, "None"]).keys())[0]
     if subtype == 1:
         _metadata = {
             'timestamp': entry['timestamp'][0],

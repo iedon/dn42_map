@@ -58,7 +58,7 @@ Center viewport: Shift+W
 			var isInternal = (window.location.href.indexOf('.dn42') != -1);
 			var homePage = isInternal ? 'https://wiki.dn42/': 'https://dn42.dev/';
 			var explorerHost = isInternal ? 'http://explorer.collector.dn42/?#/' : 'https://explorer.burble.com/?#/'
-			var aspath = './map.json';
+			var aspath = './map.json?random=0.' + (+new Date());
 			var init_delay = parseInt(0);
 			var hinty = parseInt(1);
 			var selq = '';

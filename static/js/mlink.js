@@ -107,7 +107,7 @@ function dasn(n, v, t) {
 		} catch {}
 		$.ajax({
 			type: "POST",
-			url: "https://api.iedon.com/service/dn42/whois",
+			url: "https://api.iedon.com/dn42/whois",
 			dataType: 'json',
 			contentType: "application/json",
 			data: JSON.stringify({ asn: n }),

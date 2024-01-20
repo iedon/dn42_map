@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import json, logging
-import asyncio, aiohttp, aiofiles, bz2, mrtparse
+import os, json, logging, asyncio, aiohttp, aiofiles, bz2, mrtparse
 from io import BytesIO
-
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
@@ -13,6 +11,8 @@ logging.basicConfig(level=logging.WARNING, format=LOG_FORMAT, datefmt=DATE_FORMA
 
 
 _registry = './registry'
+_mrt_basic_auth_user = os.environ.get('MRT_BASIC_AUTH_USER')
+_mrt_basic_auth_password = os.environ.get('MRT_BASIC_AUTH_PASSWORD')
 
 
 _asnIndexDict = dict()
@@ -22,7 +22,7 @@ _metadata = dict()
 _advertises = dict()
 
 
-async def getDescByASN(asn):
+async def get_desc_by_asn(asn):
     try:
         async with aiofiles.open(f"{_registry}/data/aut-num/AS{asn}", mode='r') as f:
             admin_c = ''
@@ -62,25 +62,25 @@ async def getDescByASN(asn):
     return f"AS{asn}"
 
 
-async def checkAndAddASN(asnArr, asn):
+async def check_and_add_asn(asnArr, asn):
     if asn in _asnIndexDict:
         return
     try:
         asnArr.append({
             'group': 1,
             'asn': int(asn),
-            'desc': await getDescByASN(asn)
+            'desc': await get_desc_by_asn(asn)
         })
         _asnIndexDict[asn] = len(asnArr) - 1
     except:
         pass
 
 
-async def checkAndAddLink(linkArr, asn1, asn2):
-    if asn1 not in _asnIndexDict or asn2 not in _asnIndexDict:
+async def check_and_add_link(linkArr, asn1, asn2):
+    if (asn1 not in _asnIndexDict) or (asn2 not in _asnIndexDict):
         return
 
-    if asn1 + '-' + asn2 in _linksCheckDict:
+    if (asn1 + '-' + asn2) in _linksCheckDict:
         return
 
     asn1_index = _asnIndexDict[asn1]
@@ -165,9 +165,9 @@ async def process_mrt(mrtFile, asnArr, linksArr):
                 for record in processed['rib']:
                     path_len = len(record['as_path']) - 1
                     for i in range(path_len):
-                        await checkAndAddASN(asnArr, record['as_path'][i])
-                        await checkAndAddASN(asnArr, record['as_path'][i + 1])
-                        await checkAndAddLink(linksArr, record['as_path'][i], record['as_path'][i + 1])
+                        await check_and_add_asn(asnArr, record['as_path'][i])
+                        await check_and_add_asn(asnArr, record['as_path'][i + 1])
+                        await check_and_add_link(linksArr, record['as_path'][i], record['as_path'][i + 1])
         except:
             pass
 
@@ -187,14 +187,21 @@ async def gen():
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get('https://mrt.kuu.moe/master4_latest.mrt.bz2', ssl=False) as resp:
-                master4 = await resp.read()
-                await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
+            async def process_mrt4():
+                async with session.get('https://mrt.kuu.moe/master4_latest.mrt.bz2',
+                                       ssl=False,
+                                       auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
+                    master4 = await resp.read()
+                    await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
 
-            async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2', ssl=False) as resp:
-                master6 = await resp.read()
-                await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
-
+            async def process_mrt6():
+                async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2',
+                                       ssl=False,
+                                       auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
+                    master6 = await resp.read()
+                    await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
+    
+            await asyncio.wait([process_mrt4, process_mrt6], return_when=asyncio.ALL_COMPLETED)
             for e in asn: e['routes'] = _advertises[str(e['asn'])] if str(e['asn']) in _advertises else []
 
             async with aiofiles.open('./map.json', mode='w+') as f:
@@ -213,5 +220,6 @@ if __name__ == "__main__":
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     except ImportError:
         pass
-    loop = asyncio.get_event_loop_policy().get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     loop.run_until_complete(gen())

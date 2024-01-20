@@ -1,5 +1,5 @@
-asyncio==3.4.3
-aiohttp==3.8.1
-aiofiles==0.8.0
-mrtparse==2.1.0
-uvloop==0.16.0
+asyncio
+aiohttp
+aiofiles
+mrtparse
+uvloop

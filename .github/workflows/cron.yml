@@ -10,7 +10,7 @@ jobs:
   build:
     name: Generate DN42 Map
     if: "github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v2
@@ -24,13 +24,15 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           architecture: x64
 
       - run: pip install -r requirements.txt
 
       - env:
           GIT_DN42_TOKEN: ${{ secrets.GIT_DN42_TOKEN }}
+          MRT_BASIC_AUTH_USER: ${{ secrets.MRT_BASIC_AUTH_USER }}
+          MRT_BASIC_AUTH_PASSWORD: ${{ secrets.MRT_BASIC_AUTH_PASSWORD }}
         shell: bash
         run: |
           set -ex

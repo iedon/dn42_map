@@ -14,7 +14,6 @@ _registry = './registry'
 _mrt_basic_auth_user = os.environ.get('MRT_BASIC_AUTH_USER')
 _mrt_basic_auth_password = os.environ.get('MRT_BASIC_AUTH_PASSWORD')
 
-
 _asnIndexDict = dict()
 _linksCheckDict = dict()
 
@@ -108,7 +107,7 @@ def process_entry(entry: mrtparse.Reader) -> dict:
         }
         return None
     elif subtype in {2, 8, 4, 10}:
-        cidr = f"{entry['prefix']}/{entry['prefix_length']}"
+        cidr = f"{entry['prefix']}/{entry['length']}"
         by = ''
         rib = list()
         for rib_entry in entry['rib_entries']:
@@ -192,7 +191,6 @@ async def gen():
                                     auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
                 master4 = await resp.read()
                 await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
-
 
             async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2',
                                     ssl=False,

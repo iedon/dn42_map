@@ -187,23 +187,20 @@ async def gen():
 
     try:
         async with aiohttp.ClientSession() as session:
-            async def process_mrt4():
-                async with session.get('https://mrt.kuu.moe/master4_latest.mrt.bz2',
-                                       ssl=False,
-                                       auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
-                    master4 = await resp.read()
-                    await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
+            async with session.get('https://mrt.kuu.moe/master4_latest.mrt.bz2',
+                                    ssl=False,
+                                    auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
+                master4 = await resp.read()
+                await process_mrt(bz2.BZ2File(BytesIO(master4), 'rb'), asn, links)
 
-            async def process_mrt6():
-                async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2',
-                                       ssl=False,
-                                       auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
-                    master6 = await resp.read()
-                    await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
-    
-            await asyncio.wait([process_mrt4, process_mrt6], return_when=asyncio.ALL_COMPLETED)
+
+            async with session.get('https://mrt.kuu.moe/master6_latest.mrt.bz2',
+                                    ssl=False,
+                                    auth=aiohttp.BasicAuth(_mrt_basic_auth_user, _mrt_basic_auth_password)) as resp:
+                master6 = await resp.read()
+                await process_mrt(bz2.BZ2File(BytesIO(master6), 'rb'), asn, links)
+
             for e in asn: e['routes'] = _advertises[str(e['asn'])] if str(e['asn']) in _advertises else []
-
             async with aiofiles.open('./map.json', mode='w+') as f:
                 return await f.write(json.dumps({
                     'metadata': _metadata,

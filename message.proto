@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package dn42graph;
+
+// Contains metadata information about the graph.
+message Metadata {
+  string vendor = 1;
+  int64 timestamp = 2;
+  string time = 3;
+}
+
+// Represents a CIDR route using a oneof field for IPv4 or IPv6.
+// The prefix is stored as a number: for IPv4 a uint32 value, for IPv6 a 16-byte value.
+message CIDR {
+  uint32 prefix = 1;
+  oneof ip {
+    uint32 ipv4 = 2;
+    bytes ipv6 = 3;
+  }
+}
+
+// Represents a network node with its ASN, description, and advertised routes.
+message Node {
+  uint64 asn = 1;
+  string desc = 2;
+  repeated CIDR routes = 3;
+}
+
+// Represents a link between two nodes identified by their ASN.
+message Link {
+  uint64 source = 1;
+  uint64 target = 2;
+}
+
+// The top-level message containing graph metadata, nodes, and links.
+message Graph {
+  Metadata metadata = 1;
+  repeated Node nodes = 2;
+  repeated Link links = 3;
+}

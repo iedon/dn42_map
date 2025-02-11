@@ -166,6 +166,7 @@ button {
 
 .whois .remarks p {
     line-height: 1em;
+    font-size: 12px;
     font-family: 'Courier New', Courier, monospace;
     text-align: center;
     background-color: #fff;

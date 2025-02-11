@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -10,12 +9,14 @@
     *****************************
   - Concurrently fetches MRT files via aiohttp.
   - Uses ProcessPoolExecutor to offload heavy MRT parsing across CPU cores.
-  - Converts IP address/prefix strings into compact numeric representations:
+  - Converts IP addresses into compact numeric representations:
       • IPv4 addresses as a 32-bit integer.
-      • IPv6 addresses as byte value.
-  - Serializes the result as a Protocol Buffers Graph using an updated proto definition.
-  
-Make sure to compile message.proto to generate message_pb2.
+      • IPv6 addresses are split into four 32-bit unsigned integers:
+          - high_h32, high_l32, low_h32, low_l32.
+  - Serializes the result as a Protocol Buffers Graph using the updated proto definition.
+  - For Link messages, the source and target fields store the node's index in the node array.
+
+Make sure to compile message.proto (e.g., via protoc) to generate message_pb2.
 """
 
 import os
@@ -35,7 +36,7 @@ try:
 except ImportError:
     pass
 
-# Import the generated protobuf module (from message.proto)
+# Import the generated protobuf module.
 import message_pb2
 
 # ------------------------------------------------------------------------------
@@ -57,10 +58,6 @@ OUTPUT_PROTO_FILE = './map.pb'
 # Asynchronous Registry Lookup for ASN Descriptions
 # ------------------------------------------------------------------------------
 async def get_desc_by_asn(asn: int) -> str:
-    """
-    Retrieve the description for the given ASN from the local registry.
-    Falls back to "AS{asn}" if no description is found.
-    """
     file_path = os.path.join(REGISTRY_PATH, 'data', 'aut-num', f"AS{asn}")
     try:
         async with aiofiles.open(file_path, mode='r') as f:
@@ -109,13 +106,15 @@ async def get_desc_by_asn(asn: int) -> str:
 # ------------------------------------------------------------------------------
 def process_mrt_sync(mrt_bytes: bytes) -> dict:
     """
-    Process MRT data (decompressed from bz2) and extract:
-      - as_paths: a list of AS path lists (each a list of int ASNs)
+    Process MRT data (bz2 compressed) and extract:
+      - as_paths: a list of AS path lists (each a list of int ASNs).
       - advertises: mapping from an ASN (int) to a set of CIDR tuples.
-          Each CIDR tuple is (prefix, ip_type, ip_value) where:
-            • ip_type is "ipv4" or "ipv6"
-            • ip_value is an integer (IPv4) or a 16-byte bytes object (IPv6).
-      - metadata: a dict with metadata (if available)
+          Each CIDR tuple is (length, ip_type, ip_value) where:
+            • ip_type is "ipv4" or "ipv6".
+            • For "ipv4", ip_value is a 32-bit integer.
+            • For "ipv6", ip_value is a tuple of four 32-bit integers:
+                  (high_h32, high_l32, low_h32, low_l32).
+      - metadata: a dictionary with metadata (if available).
     """
     as_paths = []
     advertises = {}
@@ -127,14 +126,10 @@ def process_mrt_sync(mrt_bytes: bytes) -> dict:
                 if getattr(entry, "err", None) is not None:
                     continue
                 data = entry.data
-
-                # Determine the MRT subtype.
                 subtype = None
                 if "subtype" in data and isinstance(data["subtype"], dict):
                     subtype = next(iter(data["subtype"].keys()))
-
                 if subtype == 1:
-                    # Metadata entry.
                     if metadata is None and "timestamp" in data:
                         try:
                             ts_key = next(iter(data["timestamp"].keys()))
@@ -147,32 +142,34 @@ def process_mrt_sync(mrt_bytes: bytes) -> dict:
                         except Exception:
                             metadata = None
                     continue
-
                 elif subtype in {2, 4, 8, 10}:
-                    # For route entries, attempt to parse prefix and prefix length.
                     try:
                         prefix = data["prefix"]
                         length = data["length"]
                     except Exception:
                         continue
 
-                    # Convert the prefix to a numeric representation.
                     try:
                         ip_obj = ipaddress.ip_address(prefix)
                     except Exception:
                         continue
 
                     if isinstance(ip_obj, ipaddress.IPv4Address):
-                        # IPv4: convert to 32-bit integer.
                         cidr_tuple = (length, "ipv4", int(ip_obj))
                     elif isinstance(ip_obj, ipaddress.IPv6Address):
-                        # IPv6: convert to 16-byte (128-bit) representation.
-                        ipv6_bytes = int(ip_obj).to_bytes(16, byteorder="big")
-                        cidr_tuple = (length, "ipv6", ipv6_bytes)
+                        ipv6_int = int(ip_obj)
+                        # Get the high and low 64-bit halves.
+                        high64 = ipv6_int >> 64
+                        low64 = ipv6_int & ((1 << 64) - 1)
+                        # Now split each 64-bit half into two 32-bit parts.
+                        high_h32 = high64 >> 32
+                        high_l32  = high64 & ((1 << 32) - 1)
+                        low_h32  = low64 >> 32
+                        low_l32   = low64 & ((1 << 32) - 1)
+                        cidr_tuple = (length, "ipv6", (high_h32, high_l32, low_h32, low_l32))
                     else:
                         continue
 
-                    # Process RIB entries to extract AS paths.
                     by = None
                     for rib_entry in data.get("rib_entries", []):
                         for attr in rib_entry.get("path_attributes", []):
@@ -188,19 +185,15 @@ def process_mrt_sync(mrt_bytes: bytes) -> dict:
                                     if seq_type == 2:
                                         parsed_as_path.extend(as_sequence.get("value", []))
                                 if parsed_as_path:
-                                    # Use the last ASN in the AS path as the advertiser.
                                     if by is None:
                                         by = parsed_as_path[-1]
                                     as_paths.append(parsed_as_path)
                     if by is not None:
-                        # Store the CIDR tuple in the advertises mapping.
                         advertises.setdefault(by, set()).add(cidr_tuple)
                 else:
                     continue
-
     except Exception as e:
         logging.exception("Error processing MRT data: %s", e)
-
     return {"as_paths": as_paths, "advertises": advertises, "metadata": metadata}
 
 # ------------------------------------------------------------------------------
@@ -216,13 +209,13 @@ async def main():
             session.get(
                 MASTER4_URL,
                 ssl=False,
-                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD),
+                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
             ),
             session.get(
                 MASTER6_URL,
                 ssl=False,
-                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD),
-            ),
+                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
+            )
         ]
         responses = await asyncio.gather(*fetch_tasks)
         mrt_bytes_list = []
@@ -263,7 +256,7 @@ async def main():
             continue
         nodes_set.update(as_path)
         for i in range(len(as_path) - 1):
-            links_set.add((as_path[i], as_path[i + 1]))
+            links_set.add((as_path[i], as_path[i+1]))
 
     # 4. Retrieve ASN descriptions concurrently.
     logging.info("Fetching ASN descriptions...")
@@ -274,8 +267,6 @@ async def main():
 
     # 5. Build the Graph protobuf message.
     graph = message_pb2.Graph()
-
-    # Set metadata (with defaults if unavailable).
     metadata_msg = message_pb2.Metadata()
     if merged_metadata:
         metadata_msg.vendor = merged_metadata.get("vendor", "IEDON.NET")
@@ -287,27 +278,37 @@ async def main():
         metadata_msg.time = ""
     graph.metadata.CopyFrom(metadata_msg)
 
-    # Build Node messages with CIDR routes.
-    for asn in nodes_set:
+    # Create a sorted node list and map ASN to node index.
+    node_list = sorted(nodes_set)
+    asn_to_index = {asn: idx for idx, asn in enumerate(node_list)}
+
+    # Build Node messages.
+    for asn in node_list:
         node_msg = graph.nodes.add()
         node_msg.asn = int(asn)
         node_msg.desc = node_descriptions.get(asn, f"AS{asn}")
         for route in merged_advertises.get(asn, set()):
-            prefix, ip_type, ip_value = route
+            length, ip_type, ip_value = route
             route_msg = node_msg.routes.add()
-            route_msg.prefix = prefix
+            route_msg.length = length
             if ip_type == "ipv4":
                 route_msg.ipv4 = ip_value
             elif ip_type == "ipv6":
-                route_msg.ipv6 = ip_value
+                # ip_value is a tuple: (high_h32, high_l32, low_h32, low_l32)
+                high_h32, high_l32, low_h32, low_l32 = ip_value
+                route_msg.ipv6.high_h32 = high_h32
+                route_msg.ipv6.high_l32  = high_l32
+                route_msg.ipv6.low_h32  = low_h32
+                route_msg.ipv6.low_l32   = low_l32
 
-    # Build Link messages.
+    # Build Link messages using node index mapping.
     for src, dst in links_set:
-        link_msg = graph.links.add()
-        link_msg.source = int(src)
-        link_msg.target = int(dst)
+        if src in asn_to_index and dst in asn_to_index:
+            link_msg = graph.links.add()
+            link_msg.source = asn_to_index[src]
+            link_msg.target = asn_to_index[dst]
 
-    # 6. Write the Graph (protobuf binary) to file.
+    # 6. Write the Graph protobuf to file.
     try:
         async with aiofiles.open(OUTPUT_PROTO_FILE, mode="wb") as f:
             await f.write(graph.SerializeToString())

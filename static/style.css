@@ -21,6 +21,12 @@ body {
 
 #metadata a {
     text-decoration: none;
+    color: #3b973e;
+    opacity: 1;
+}
+
+#metadata a:hover {
+    opacity: 0.75;
 }
 
 /* Search container styling */
@@ -148,6 +154,7 @@ button {
 #sidebar-content a,
 .whois a {
     text-decoration: none;
+    color: #555;
 }
 
 .whois table {
@@ -155,6 +162,19 @@ button {
     margin: 10px auto 0 auto;
     border-collapse: collapse;
     table-layout: fixed;
+}
+
+.whois .remarks p {
+    line-height: 1em;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    background-color: #fff;
+    padding: 0;
+    margin: 0;
+}
+
+.whois .remarks p:first-child {
+    margin-top: 10px;
 }
 
 .whois tr:nth-child(even) {
@@ -171,13 +191,6 @@ button {
     text-align: left;
     overflow-wrap: break-word;
     color: #333;
-}
-
-.whois td.remark {
-    font-family: 'Courier New', Courier, monospace;
-    text-align: center;
-    background-color: #fff;
-    padding: 0;
 }
 
 .whois .key {

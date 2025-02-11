@@ -183,7 +183,7 @@ let graph = null;
 
     // Process the graph: iterate over nodes and access each route's CIDR.
     data.nodes.forEach(node => {
-      node.routesParsed = [];
+      const parsed = [];
       node.routes?.forEach(route => {
         const length = route.length;
         // Check the oneof fields: either "ipv4" or "ipv6" is set.
@@ -196,14 +196,15 @@ let graph = null;
             (ipv4 >> 8) & 0xff,
             ipv4 & 0xff
           ].join(".");
-          node.routesParsed.push(`${ipStr}/${length}`);
+          parsed.push(`${ipStr}/${length}`);
         } else if (route.ipv6 != null) {
           const ipStr = ipv6FromQuard32(route.ipv6.highH32, route.ipv6.highL32, route.ipv6.lowH32, route.ipv6.lowL32);
-          node.routesParsed.push(`${ipStr}/${length}`);
+          parsed.push(`${ipStr}/${length}`);
         } else {
           console.warn(`Unknown or empty IP route for AS${node.asn}`);
         }
       });
+      node.routes = parsed;
     });
 
     initMap(data);
@@ -222,8 +223,10 @@ function initMap(data) {
 
   // Convert links to use actual node object references
   links.forEach(link => {
-    link.source = nodes[link.source];
-    link.target = nodes[link.target];
+    link.source = nodes[link.source ?? 0];
+    link.asnSrc = link.source.asn;
+    link.target = nodes[link.target ?? 0];
+    link.asnDst = link.target.asn;
   });
 
   // Setup peers and fast lookup map for nodes
@@ -261,8 +264,14 @@ function initMap(data) {
 
   // Render the graph
   graph = ForceGraph()(document.getElementById("map"))
+    .graphData(parsedData)
+    .nodeVal(d => d.size)
+    .nodeId("asn")
+    .linkSource("asnSrc")
+    .linkTarget("asnDst")
     .zoom(currentScaleLevel)
     .d3AlphaDecay(0.05)
+    .d3VelocityDecay(0.4)
     .backgroundColor(VAR_MAP_BACKGROUND_COLOR)
     .nodeColor(() => VAR_NODE_COLOR_DEFAULT)
     .linkColor(() => VAR_LINK_COLOR_DEFAULT)
@@ -289,7 +298,7 @@ function initMap(data) {
       const title = `<div class="title">${tag}<b>${desc} (AS${d.asn})</b></div>`;
       const peers = `<p>Neighbors: ${d.peers.size}</p>`;
       let advertisedRoutes = "";
-      const routes = d.routesParsed.map(r => `<li>${r}</li>`).join("");
+      const routes = d.routes.map(r => `<li>${r}</li>`).join("");
       if (routes) advertisedRoutes = `<p>Advertised routes:</p><ul>${routes}</ul>`;
       return `<div class="nodeInfo">${title}${peers}${advertisedRoutes}</div>`;
     })
@@ -302,8 +311,6 @@ function initMap(data) {
     .onZoomEnd(({ k }) => {
       currentScaleLevel = k;
     })
-    .graphData(parsedData)
-    .nodeVal(d => d.size)
     .nodeCanvasObject((node, ctx) => {
       // Draw node circle
       ctx.beginPath();
@@ -350,19 +357,19 @@ function highlightNode(node) {
   hoveredNode = node;
   graph
     .nodeColor(d =>
-      d === node
+      d.asn === node.asn
         ? VAR_NODE_COLOR_CURRENT
-        : node && node.peers.has(d.asn)
+        : node.peers.has(d.asn)
           ? VAR_NODE_COLOR_LINKED
           : VAR_NODE_COLOR_DEFAULT
     )
     .linkColor(d =>
-      d.source === node || d.target === node
+      d.asnSrc === node.asn || d.asnDst === node.asn
         ? VAR_LINK_COLOR_EMPHASIZE
         : VAR_LINK_COLOR_DEFAULT
     )
     .linkWidth(d =>
-      d.source === node || d.target === node
+      d.asnSrc === node.asn || d.asnDst === node.asn
         ? VAR_LINK_WIDTH_EMPHASIZE
         : VAR_LINK_WIDTH_DEFAULT
     );
@@ -400,9 +407,9 @@ function showSidebar(node) {
   const onclick = asn => `onclick="javascript:navigateToNode('${asn}')"`;
   const header = `<p><b class="emphasized" ${onclick(node.asn)}>${node.desc}</b></p>`;
   const routes = `
-    <p><strong class="emphasized">Routes (${node.routesParsed.length})</strong></p>
+    <p><strong class="emphasized">Routes (${node.routes.length})</strong></p>
     <ul>
-      ${node.routesParsed.map(route =>
+      ${node.routes.map(route =>
         `<li><a href="${VAR_DN42_EXPLORER_URL}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`
       ).join("")}
     </ul>

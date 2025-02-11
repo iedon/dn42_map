@@ -27,7 +27,9 @@ jobs:
           python-version: '3.13'
           architecture: x64
 
-      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+            node-version: '22.14.0'
 
       - env:
           GIT_DN42_TOKEN: ${{ secrets.GIT_DN42_TOKEN }}
@@ -36,6 +38,7 @@ jobs:
         shell: bash
         run: |
           set -ex
+          echo "Preparing GitHub Pages directory..."
           pushd pages
           git config user.email "bot@github.com"
           git config user.name "bot"
@@ -43,9 +46,24 @@ jobs:
           git reset --hard 59696cbdf98b9db4acee061fdee27f9825963598
           git clean -fxd :/
           popd
+
+          echo "Packing sources..."
+          cp -r src/* pack/
+          cd pack && npm install && mkdir dist
+          npm run pack
+          cp dist/index.html ../pages/
+          cp message.proto ../pages/
+          cd ..
+
+          echo "Generating map..."
+          cd generator
           bash gen.sh
-          cp map.pb pages/
-          cp -r static/* pages/
+          cp map.pb ../pages/
+          cd ..
+
+          echo "Placing public sources..."
+          cp -r public/* pages/
+
           pushd pages
           git add .
           git commit --allow-empty -m "Generated at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"

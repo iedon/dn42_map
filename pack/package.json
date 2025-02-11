@@ -1,0 +1,16 @@
+{
+  "name": "dn42mappacker",
+  "version": "1.0.0",
+  "description": "A tiny pack script for dn42_map",
+  "main": "pack.js",
+  "scripts": {
+    "pack": "node pack.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "iEdon",
+  "license": "ISC",
+  "dependencies": {
+    "html-minifier": "^4.0.0",
+    "inline-source": "^8.0.3"
+  }
+}

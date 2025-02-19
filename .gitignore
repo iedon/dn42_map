@@ -1,9 +1,11 @@
 __pycache__
 .DS_Store
 generator/__pycache__
+generator/map.bin
 venv
-map.pb
+map.bin
 map.json
 node_modules
-pack/node_modules
-pack/package-lock.json
+dist
+package-lock.json
+bun.lockb

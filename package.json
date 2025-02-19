@@ -1,0 +1,27 @@
+{
+    "name": "dn42-map",
+    "version": "2.0.0",
+    "description": "DN42 Map visualization using d3.js.",
+    "type": "module",
+    "main": "dist/map.js",
+    "scripts": {
+        "build": "rollup -c && node pack.js && rm -rf dist/map.js dist/style.css",
+        "dev": "npm run build && npx http-server dist"
+    },
+    "author": "iedon.net",
+    "license": "GPL-3.0-only",
+    "dependencies": {
+        "d3": "^7.9.0",
+        "protobufjs": "^7.4.0"
+    },
+    "devDependencies": {
+        "html-minifier": "^4.0.0",
+        "inline-source": "^8.0.3",
+        "rollup": "^4.34.8",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-strip": "^3.0.4",
+        "@rollup/plugin-commonjs": "^28.0.2",
+        "@rollup/plugin-node-resolve": "^16.0.0",
+        "rollup-plugin-copy": "^3.5.0"
+    }
+}

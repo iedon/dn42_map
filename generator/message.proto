@@ -5,8 +5,8 @@ package dn42graph;
 // Contains metadata information about the graph.
 message Metadata {
   string vendor = 1;
-  int64 timestamp = 2;
-  string time = 3;
+  int64 generated_timestamp = 2;
+  int64 data_timestamp = 3;
 }
 
 // Represents an IPv6 address split into four 32-bit fields:

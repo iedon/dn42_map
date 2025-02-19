@@ -47,18 +47,15 @@ jobs:
           git clean -fxd :/
           popd
 
-          echo "Packing sources..."
-          cp -r src/* pack/
-          cd pack && npm install && mkdir dist
-          npm run pack
-          cp dist/index.html ../pages/
-          cp message.proto ../pages/
-          cd ..
+          echo "Transforming sources..."
+          npm install && mkdir dist
+          npm run build
+          cp dist/index.html pages/
 
           echo "Generating map..."
           cd generator
           bash gen.sh
-          cp map.pb ../pages/
+          cp map.bin ../pages/
           cd ..
 
           echo "Placing public sources..."

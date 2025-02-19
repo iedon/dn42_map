@@ -22,6 +22,7 @@ Make sure to compile message.proto (e.g., via protoc) to generate message_pb2.
 import os
 import logging
 import asyncio
+import time
 import aiohttp
 import aiofiles
 import bz2
@@ -46,13 +47,16 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
-REGISTRY_PATH = "./registry"
+#REGISTRY_PATH = "./registry"
+REGISTRY_PATH = "/Users/iedon/tmp/registry"
 MRT_BASIC_AUTH_USER = os.environ.get('MRT_BASIC_AUTH_USER')
 MRT_BASIC_AUTH_PASSWORD = os.environ.get('MRT_BASIC_AUTH_PASSWORD')
 
-MASTER4_URL = 'https://mrt.kuu.moe/master4_latest.mrt.bz2'
-MASTER6_URL = 'https://mrt.kuu.moe/master6_latest.mrt.bz2'
-OUTPUT_PROTO_FILE = './map.pb'
+# MASTER4_URL = 'https://mrt.kuu.moe/master4_latest.mrt.bz2'
+# MASTER6_URL = 'https://mrt.kuu.moe/master6_latest.mrt.bz2'
+MASTER4_URL = 'https://mrt.collector.dn42/master4_latest.mrt.bz2'
+MASTER6_URL = 'https://mrt.collector.dn42/master6_latest.mrt.bz2'
+OUTPUT_PROTO_FILE = './map.bin'
 
 # ------------------------------------------------------------------------------
 # Asynchronous Registry Lookup for ASN Descriptions
@@ -209,12 +213,12 @@ async def main():
             session.get(
                 MASTER4_URL,
                 ssl=False,
-                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
+                #auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
             ),
             session.get(
                 MASTER6_URL,
                 ssl=False,
-                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
+                #auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
             )
         ]
         responses = await asyncio.gather(*fetch_tasks)
@@ -270,12 +274,12 @@ async def main():
     metadata_msg = message_pb2.Metadata()
     if merged_metadata:
         metadata_msg.vendor = merged_metadata.get("vendor", "IEDON.NET")
-        metadata_msg.timestamp = merged_metadata.get("timestamp", 0)
-        metadata_msg.time = merged_metadata.get("time", "")
+        metadata_msg.generated_timestamp = int(time.time())
+        metadata_msg.data_timestamp = merged_metadata.get("timestamp", 0)
     else:
         metadata_msg.vendor = "IEDON.NET"
-        metadata_msg.timestamp = 0
-        metadata_msg.time = ""
+        metadata_msg.generated_timestamp = int(time.time())
+        metadata_msg.data_timestamp = 0
     graph.metadata.CopyFrom(metadata_msg)
 
     # Create a sorted node list and map ASN to node index.

@@ -47,15 +47,12 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
-#REGISTRY_PATH = "./registry"
-REGISTRY_PATH = "/Users/iedon/tmp/registry"
+REGISTRY_PATH = "./registry"
 MRT_BASIC_AUTH_USER = os.environ.get('MRT_BASIC_AUTH_USER')
 MRT_BASIC_AUTH_PASSWORD = os.environ.get('MRT_BASIC_AUTH_PASSWORD')
 
-# MASTER4_URL = 'https://mrt.kuu.moe/master4_latest.mrt.bz2'
-# MASTER6_URL = 'https://mrt.kuu.moe/master6_latest.mrt.bz2'
-MASTER4_URL = 'https://mrt.collector.dn42/master4_latest.mrt.bz2'
-MASTER6_URL = 'https://mrt.collector.dn42/master6_latest.mrt.bz2'
+MASTER4_URL = 'https://mrt.kuu.moe/master4_latest.mrt.bz2'
+MASTER6_URL = 'https://mrt.kuu.moe/master6_latest.mrt.bz2'
 OUTPUT_PROTO_FILE = './map.bin'
 
 # ------------------------------------------------------------------------------
@@ -213,12 +210,12 @@ async def main():
             session.get(
                 MASTER4_URL,
                 ssl=False,
-                #auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
+                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
             ),
             session.get(
                 MASTER6_URL,
                 ssl=False,
-                #auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
+                auth=aiohttp.BasicAuth(MRT_BASIC_AUTH_USER, MRT_BASIC_AUTH_PASSWORD)
             )
         ]
         responses = await asyncio.gather(*fetch_tasks)

@@ -22,7 +22,7 @@ export async function showSidebar(node) {
   showingSideBar = true;
   const sidebar = document.getElementById("sidebar");
   const sidebarContent = document.getElementById("sidebar-content");
-  const onclick = asn => `onclick="javascript:window.navigateToNode(${asn})"`;
+  const onclick = asn => `onclick="javascript:window.navigateToNode(${asn},true)"`;
   const header = `<p><b class="emphasized clickable" ${onclick(node.asn)}>${node.desc}</b></p>`;
   const routes = `<p><strong class="emphasized">Routes (${node.routes.length})</strong></p><ul>${node.routes.map(route =>`<li><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`).join("")}</ul>`;
   const neighbors = `<p><strong class="emphasized">Neighbors (${node.peers.size})</strong></p><ul>${[...node.peers].map(peerAsn => `<li><a ${onclick(peerAsn)}>${map.nodeMap.get(peerAsn.toString())?.desc || peerAsn}</a></li>`).join("")}</ul>`;

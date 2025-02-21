@@ -50,3 +50,23 @@ export async function getWhoisData(asn) {
   }
   return data.whois;
 }
+
+/**
+ * Fetches source ip data from the server.
+ */
+export async function getMyIpData() {
+  const response = await fetch(constants.dn42.myIpApi, {
+    headers: {
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    }
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch myip data.");
+
+  const data = await response.json();
+  if (!data.ip) {
+    throw new Error("Network response error.");
+  }
+  return data;
+}

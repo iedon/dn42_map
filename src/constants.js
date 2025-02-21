@@ -30,6 +30,7 @@ export const constants = {
     },
   },
   dn42: {
+    accessingFromDn42: window.location.href.includes(".dn42"),
     whoisApi: "https://api.iedon.com/dn42/whois",
     explorerUrl:
       window.location.href.includes(".dn42")
@@ -40,5 +41,7 @@ export const constants = {
         ? "https://wiki.dn42/"
         : "https://dn42.dev/",
     peerFinderUrl: "https://dn42.us/peers/",
+    myIpUrl: `${location.protocol}//map.dn42/myip/`,
+    myIpApi: `${location.protocol}//map.dn42/myip/api`
   },
 };

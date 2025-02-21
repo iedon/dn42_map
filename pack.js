@@ -19,7 +19,7 @@ import { minify } from 'html-minifier';
       collapseWhitespace: true,
       removeComments: true,
       minifyCSS: true,
-      minifyJS: false
+      minifyJS: true
     });
 
     // Write the final single-file HTML to a new location.

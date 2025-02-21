@@ -12,6 +12,13 @@ GitHub Action has been depolyed to auto generate latest map data from the GRC(Gl
 - `generator` contains binary data generator, which triggers by GitHub Actions to generate latest `.bin` file from the DN42 GRC dump file
 - `public` folder contains those static files will be copied to production folder(for this repository, GitHub Pages)
 - `src` folder contains frontend project
+- `myip` contains what is my IP service customized for map.dn42
+
+## Build
+
+```bash
+bun run build
+```
 
 ## Credits
 

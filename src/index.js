@@ -1,11 +1,12 @@
 // src/index.js
 
-import { getGraphData } from "./graph/data";
+import { getGraphData } from "./graph/api";
 import { initMap } from "./graph/map";
-import { showMetadata, toggleSearchContainer, tweakDisableGesture } from "./graph/sidebar";
+import { showMetadata, toggleSearchContainer, tweakDisableGesture, showMyDN42Ip } from "./graph/sidebar";
 
 window.onload = async function() {
   try {
+    showMyDN42Ip();
     tweakDisableGesture();
     toggleSearchContainer(false);
 

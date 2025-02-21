@@ -1,0 +1,11 @@
+{
+    "webroot": "./assets",
+    "listen4": "0.0.0.0:8080",
+    "listen6": "[::]:8080",
+    "whois_server": "172.23.91.117",
+    "node_id": "US-LAX",
+    "node_asn": "AS4242422189",
+    "node_location": "US",
+    "node_location_full": "California, United States",
+    "trusted_proxies": ["127.0.0.1", "::", "172.23.91.125", "fd42:4242:2189:e9::1" ]
+}

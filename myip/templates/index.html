@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        
+        <title>MyIP service by map.dn42</title>
+
+        <meta name="author" content="dn42 community">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="robots" content="index, follow">
+        <meta name="description" content="This service can tell you your IP address in dn42.">
+        <meta name="keywords" content="what is my ip,my ip">
+                
+        <link rel="icon" type="image/png" href="favicon.png">
+        <link rel="shortcut icon" type="image/png" href="favicon.png">
+ 
+        <link rel="stylesheet" href="assets/css/normalize.css">
+        <link rel="stylesheet" href="assets/css/simple.min.css">
+    </head>
+    <body>
+        <header>
+            <h1>MyIP service by map.dn42</h1>
+        </header>
+        <main>
+            <div>
+                <h2>Your IP address</h2>
+                Your IP address is <strong>{{ .IP }}</strong>.<br>
+            </div>
+            <div>
+                <h2>Remote Node</h2>
+                You have reached the myip.dn42 service of AS{{ .NodeASN }}. The server is located in {{ .NodeLocationFull }} ({{ .NodeLocation }}). The server has the ID <code>{{ .NodeID }}</code>.
+            </div>
+        </main>
+        <footer>
+            <p>
+        This service is provided by the dn42 community. Design inherited from <a href="https://git.dn42.dev/lare/myip.dn42">myip.dn42</a> with some modification.
+            </p>
+        </footer>
+    </body>
+</html>

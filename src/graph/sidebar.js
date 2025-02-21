@@ -1,11 +1,9 @@
 // src/graph/sidebar.js
 
 import { constants } from "../constants";
-import { getWhoisData } from "./data";
-import { select } from "d3-selection";
-import { zoomIdentity } from "d3-zoom";
+import { getMyIpData, getWhoisData } from "./api";
 
-let map;
+let map, showingSideBar;
 export const initSidebar = m => { map = m };
 
 export function tweakDisableGesture() {
@@ -21,6 +19,7 @@ export function toggleSearchContainer(onOff = false) {
 // Display sidebar with node details and whois information
 const whoisCache = {};
 export async function showSidebar(node) {
+  showingSideBar = true;
   const sidebar = document.getElementById("sidebar");
   const sidebarContent = document.getElementById("sidebar-content");
   const onclick = asn => `onclick="javascript:window.navigateToNode(${asn})"`;
@@ -81,6 +80,7 @@ export async function showSidebar(node) {
 }
 
 export function closeSideBar() {
+  showingSideBar = false;
   document.getElementById("sidebar").style.left = "-500px";
 }
 
@@ -89,6 +89,25 @@ export function showMetadata(mrtDumpDate) {
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer finder</a> | ` +
   `Last update: ${mrtDumpDate}`;
+}
+
+export async function showMyDN42Ip() {
+  try {
+    if (constants.dn42.accessingFromDn42) {
+      const myip = document.getElementById("myip");
+      const data = await getMyIpData();
+      let output = "";
+      if (data.country) output += `<img src="flags/${data.country.toLowerCase()}.svg" width="16" height="16" alt="${data.ip}"/>&nbsp;&nbsp;`;
+      if (data.ip) output += `IP&nbsp;&nbsp;<a href="${constants.dn42.myIpUrl}" target="_blank">${data.ip}</a>&nbsp;`;
+      if (data.origin) output += `(<a onclick="javascript:window.navigateToNode(${Number(data.origin.replace("AS",""))},true)">${data.origin}</a>)`;
+      if (data.netname) output += `&nbsp;|&nbsp;from&nbsp;${data.netname}`;
+      myip.innerHTML = output;
+      myip.style.display = "flex";
+    }
+  } catch(error) {
+    console.error(`Failed to get source IP information. ${error}`);
+    myip.style.display = "none";
+  }
 }
 
 export function showTooltip(event, node) {
@@ -148,16 +167,23 @@ function generateTooltipHtml(node) {
 export const navigateToNode = nodeOrAsn => {
   const node = typeof nodeOrAsn === "number"
     ? map.nodeMap.get(nodeOrAsn.toString())
-    : nodeOrAsn || map.hoveredNode;
+    : nodeOrAsn;
 
   if (!node) return;
 
   map.hoveredNode = node;
   map.draw();
-
-  showSidebar(node);
 };
-window.navigateToNode = navigateToNode;
+window.navigateToNode = (nodeOrAsn, sideBar=false) => {
+  const node = typeof nodeOrAsn === "number"
+    ? map.nodeMap.get(nodeOrAsn.toString())
+    : nodeOrAsn;
+
+  if (!node) return;
+
+  navigateToNode(node);
+  if (sideBar) showSidebar(node);
+};
 
 // Search for a node based on input value
 function searchNode() {
@@ -167,6 +193,7 @@ function searchNode() {
   const node = map.nodeMap.get(query);
   if (node) {
     navigateToNode(node);
+    showSidebar(node);
   } else {
     alert("Node not found.");
   }
@@ -178,5 +205,11 @@ function checkSearchInput(event) {
 }
 
 export const checkSearchInputEventListener = () => document.getElementById("search-input").addEventListener("keydown", checkSearchInput);
-export const closeSideBarEventListener = () => document.getElementById("close-sidebar").addEventListener("click", closeSideBar);
+export const closeSideBarEventListener = () => {
+  document.getElementById("close-sidebar").addEventListener("click", closeSideBar);
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeSideBar();
+  });
+};
 export const searchNodeEventListener = () => document.getElementById("search-btn").addEventListener("click", searchNode);
+export const getShowingSideBar = () => showingSideBar;

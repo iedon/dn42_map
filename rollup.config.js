@@ -15,9 +15,19 @@ export default {
   plugins: [
     resolve(),
     commonjs(),
-    terser(),
+    terser({
+      toplevel: true,
+      ecma: 2016,
+      sourceMap: false,
+      mangle: {
+        toplevel: true,
+        module: true,
+        eval: true
+      }
+    }),
     copy({
       targets: [
+        { src: "src/flags", dest: "dist" },
         { src: "src/index.html", dest: "dist" }, // Copy index.html to dist folder for pack.js to inline
         { src: "src/style.css", dest: "dist" } // Copy CSS to dist folder for pack.js to inline
       ]

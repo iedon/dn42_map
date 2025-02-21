@@ -9,3 +9,5 @@ node_modules
 dist
 package-lock.json
 bun.lockb
+myip/go.sum
+myip/myip

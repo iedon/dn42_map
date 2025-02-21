@@ -1,9 +1,9 @@
 // src/graph/event.js
 
+import { constants } from "../constants";
+import { showTooltip, hideTooltip, navigateToNode, showSidebar, closeSideBar, getShowingSideBar, checkSearchInputEventListener, closeSideBarEventListener, searchNodeEventListener } from "./sidebar";
 import { forceCenter } from "d3-force";
 import { select } from "d3-selection";
-import { constants } from "../constants";
-import { showTooltip, hideTooltip, navigateToNode, closeSideBar, checkSearchInputEventListener, closeSideBarEventListener, searchNodeEventListener } from "./sidebar";
 
 let map, focusingNode, draggingNode, showingTooltip, pointerIsDown;
 export function initEvent(_map) {
@@ -87,11 +87,11 @@ function pointerMove(event) {
   }
 
   if (!pointerIsDown) {
+    const hoveredNode = findClosestNode(x, y);
     // Change cursor to pointer if hovering a node
-    map.canvas.style.cursor = map.hoveredNode ? "pointer" : "default";
-
-    map.hoveredNode = findClosestNode(x, y);
-    if (map.hoveredNode) {
+    map.canvas.style.cursor = hoveredNode ? "pointer" : "default";
+    if (hoveredNode && !getShowingSideBar()) {
+      map.hoveredNode = hoveredNode;
       map.draw();
       showTooltip(event, map.hoveredNode);
       showingTooltip = true;
@@ -111,7 +111,7 @@ function pointerDown(event) {
     event.pageX - offset.left,
     event.pageY - offset.top,
   ]);
-  
+
   focusingNode = findClosestNode(x, y);
   if (focusingNode) disableZoom();
 }
@@ -125,6 +125,7 @@ function pointerLeave() {
 function pointerUp(event) {
   pointerIsDown = false;
   if (focusingNode) {
+    // This is a click to a node, not dragging
     const offset = getOffset(map.canvas);
     const [x, y] = map.transform.invert([
       event.pageX - offset.left,
@@ -132,7 +133,10 @@ function pointerUp(event) {
     ]);
 
     map.hoveredNode = findClosestNode(x, y);
-    if (map.hoveredNode) navigateToNode();
+    if (map.hoveredNode) {
+      navigateToNode(map.hoveredNode);
+      showSidebar(map.hoveredNode);
+    }
 
     focusingNode = null;
     // Not dragging, revert to enable zoom
@@ -140,6 +144,7 @@ function pointerUp(event) {
     return;
   }
 
+  map.canvas.style.cursor = "default";
   stopDragging();
 }
 

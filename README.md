@@ -4,6 +4,11 @@ This is the repository for map.dn42 service.
 
 GitHub Action has been depolyed to auto generate latest map data from the GRC(Global Route Collector).
 
+Visit map.dn42: [https://map.dn42/](https://map.dn42/)
+
+> [!NOTE]
+> Without having access to DN42, you can also have a try from clearnet: [https://map.iedon.net](https://map.iedon.net)
+
 ![DN42 Network Map Screenshot](./screenshot.png)
 
 ## Structure

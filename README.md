@@ -18,6 +18,7 @@ Visit map.dn42: [https://map.dn42/](https://map.dn42/)
 - `public` folder contains those static files will be copied to production folder(for this repository, GitHub Pages)
 - `src` folder contains frontend project
 - `myip` contains what is my IP service customized for map.dn42
+- `maphook` contains hook app that used to active & dynamically trigger CI/CD
 
 ## Build
 

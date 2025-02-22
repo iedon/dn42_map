@@ -23,8 +23,8 @@ export const constants = {
       labelFontFamily: "Inter, sans-serif",
     },
     link: {
-      colorDefault: "#1c412b",
-      colorEmphasize: "#be801a",
+      colorDefault: "#1d5232",
+      colorEmphasize: "#ce8815",
       widthDefault: 0.5,
       widthEmphasize: 1,
     },

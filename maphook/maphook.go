@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -30,6 +32,7 @@ type Config struct {
 		URL              string `json:"url"`
 		CheckInterval    int    `json:"check_interval"`
 		IgnoreCertVerify bool   `json:"ignore_cert_verify"`
+		CustomDNSServer  string `json:"custom_dns_server"`
 	} `json:"mrt"`
 
 	GitHub struct {
@@ -100,11 +103,26 @@ func executeShellCommand() {
 // ========= GRC MRT Active Check =========
 
 func fetchMRTDates() (string, string, error) {
-	httpClient := &http.Client{}
-	if config.MRT.IgnoreCertVerify {
-		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Millisecond * time.Duration(10000),
+			}
+			return d.DialContext(ctx, network, config.MRT.CustomDNSServer)
+		},
+	}
+
+	dialer := &net.Dialer{
+		Timeout:  10 * time.Second,
+		Resolver: resolver,
+	}
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext:     dialer.DialContext,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: config.MRT.IgnoreCertVerify},
+		},
 	}
 
 	resp, err := httpClient.Get(config.MRT.URL)
@@ -202,7 +220,6 @@ func main() {
 	}()
 
 	for {
-		log.Printf("test...")
 		master4Date, master6Date, err := fetchMRTDates()
 		if err != nil {
 			log.Printf("Failed to fetch MRT dates: %v", err)

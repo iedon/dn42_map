@@ -1,35 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>DN42 Realtime Network Map</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-        <meta name="description" content="DN42 Realtime Network Map retrieves MRT dumps from the DN42 Global Route Collector(GRC) and displays autonomous systems(ASes), their neighbors, and links on this map." />
-        <meta name="keywords" content="DN42,Map,BGP,Network,Routing,BIRD,FRR,FRRouting,Peering,ASN,Peer,Realtime,NEONETWORK,ICVPN,CHAOSVPN" />
-        <meta property="og:title" content="DN42 Realtime Network Map" />
-        <meta property="og:site_name" content="iEdon-Net" />
-        <meta property="og:type" content="website" />
-        <meta property="og:description" content="DN42 Realtime Network Map retrieves MRT dumps from the DN42 Global Route Collector(GRC) and displays autonomous systems(ASes), their neighbors, and links on this map." />
-        <meta property="og:url" content="https://map.iedon.net" />
-        <meta property="og:image" content="https://map.iedon.net/screenshot.png" />
-        <link inline rel="stylesheet" href="style.css">
-    </head>
-    <body>
+
+<head>
+    <meta charset="UTF-8">
+    <title>DN42 Realtime Network Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <meta name="description"
+        content="DN42 Realtime Network Map retrieves MRT dumps from the DN42 Global Route Collector(GRC) and displays autonomous systems(ASes), their neighbors, and links on this map." />
+    <meta name="keywords"
+        content="DN42,Map,BGP,Network,Routing,BIRD,FRR,FRRouting,Peering,ASN,Peer,Realtime,NEONETWORK,ICVPN,CHAOSVPN" />
+    <meta property="og:title" content="DN42 Realtime Network Map" />
+    <meta property="og:site_name" content="iEdon-Net" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description"
+        content="DN42 Realtime Network Map retrieves MRT dumps from the DN42 Global Route Collector(GRC) and displays autonomous systems(ASes), their neighbors, and links on this map." />
+    <meta property="og:url" content="https://map.iedon.net" />
+    <meta property="og:image" content="https://map.iedon.net/screenshot.png" />
+    <link inline rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="header-container">
         <div id="metadata">Loading...</div>
         <div id="search-container">
             <input id="search-input" type="text" placeholder="Type ASN or name...">
             <button id="search-btn">Search</button>
         </div>
-        <div id="sidebar">
-            <div id="sidebar-header">
-                <span id="sidebar-title">Node Information</span>
-                <button id="close-sidebar">&times;</button>
-            </div>
-            <div id="sidebar-content"></div>
+    </div>
+
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <span id="sidebar-title">Node Information</span>
+            <button id="close-sidebar">&times;</button>
         </div>
-        <canvas id="map"></canvas>
-        <div id="tooltip"></div>
-        <div id="myip"></div>
-        <script inline src="map.js" type="module"></script>
-    </body>
+        <div id="sidebar-content"></div>
+    </div>
+    <canvas id="map"></canvas>
+    <div id="tooltip"></div>
+    <div id="myip"></div>
+    <script inline src="map.js" type="module"></script>
+</body>
+
 </html>

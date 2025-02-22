@@ -143,7 +143,7 @@ map.draw = () => {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
-  ctx.translate(transform.x * constants.render.pixelRatio, transform.y * constants.render.pixelRatio);
+  ctx.translate(transform.x, transform.y);
   ctx.scale(transform.k, transform.k);
 
   // Draw all links in one loop
@@ -172,7 +172,7 @@ map.draw = () => {
       });
   }
 
-  const zoomSufficient = transform.k >= 0.45;
+  const zoomSufficient = transform.k >= 0.65;
 
   // Draw nodes
   nodes.forEach(d => {
@@ -188,9 +188,11 @@ map.draw = () => {
       }
 
       ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
+
+      // draw border 0.5px, removed due to switched to dark theme
+      // ctx.strokeStyle = "#fff";
+      // ctx.lineWidth = 0.5;
+      // ctx.stroke();
 
       // Draw labels only if zoom level is sufficient
       if (zoomSufficient) {

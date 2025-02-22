@@ -205,11 +205,6 @@ function checkSearchInput(event) {
 }
 
 export const checkSearchInputEventListener = () => document.getElementById("search-input").addEventListener("keydown", checkSearchInput);
-export const closeSideBarEventListener = () => {
-  document.getElementById("close-sidebar").addEventListener("click", closeSideBar);
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape") closeSideBar();
-  });
-};
+export const closeSideBarEventListener = () => document.getElementById("close-sidebar").addEventListener("click", closeSideBar);
 export const searchNodeEventListener = () => document.getElementById("search-btn").addEventListener("click", searchNode);
 export const getShowingSideBar = () => showingSideBar;

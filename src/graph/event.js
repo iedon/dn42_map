@@ -9,12 +9,23 @@ let map, focusingNode, draggingNode, showingTooltip, pointerIsDown;
 export function initEvent(_map) {
   map = _map;
 
+  const clearSelection = () => {
+    closeSideBar();
+    map.hoveredNode = null;
+    map.draw();
+  }
+
   map.canvas.addEventListener("pointermove", pointerMove);
   map.canvas.addEventListener("pointerleave", pointerLeave);
   map.canvas.addEventListener("pointerdown", pointerDown);
   map.canvas.addEventListener("pointerup", pointerUp);
   map.canvas.addEventListener("contextmenu", e => {
-    if (e.button === 2) closeSideBar();
+    if (e.button === 2) clearSelection();
+    e.preventDefault();
+    return false;
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") clearSelection();
     e.preventDefault();
     return false;
   });
@@ -51,19 +62,19 @@ function resizeEventListener() {
   });
 }
 
-function getOffset(container) {
+function getCoordination(container, event) {
   const rect = container.getBoundingClientRect(),
     scrollLeft = window.scrollX || document.documentElement.scrollLeft,
     scrollTop = window.scrollY || document.documentElement.scrollTop;
-  return { top: rect.top + scrollTop, left: rect.left + scrollLeft };
+
+  return map.transform.invert([
+    event.pageX - (rect.left + scrollLeft),
+    event.pageY - (rect.top + scrollTop),
+  ]);
 }
 
 function pointerMove(event) {
-  const offset = getOffset(map.canvas);
-  const [x, y] = map.transform.invert([
-    event.pageX - offset.left,
-    event.pageY - offset.top,
-  ]);
+  const [x, y] = getCoordination(map.canvas, event);
 
   if (focusingNode) {
     // Start dragging
@@ -80,8 +91,8 @@ function pointerMove(event) {
       hideTooltip();
       showingTooltip = false;
     }
-    draggingNode.fx = x - map.transform.x / map.transform.k; // (x * map.transform.k - map.transform.x) / map.transform.k
-    draggingNode.fy = y - map.transform.y / map.transform.k; // (y * map.transform.k - map.transform.y) / map.transform.k
+    draggingNode.fx = x;
+    draggingNode.fy = y;
     map.draw(); // Redraw for smooth dragging
     return;
   }
@@ -106,11 +117,7 @@ function pointerMove(event) {
 
 function pointerDown(event) {
   pointerIsDown = true;
-  const offset = getOffset(map.canvas);
-  const [x, y] = map.transform.invert([
-    event.pageX - offset.left,
-    event.pageY - offset.top,
-  ]);
+  const [x, y] = getCoordination(map.canvas, event);
 
   focusingNode = findClosestNode(x, y);
   if (focusingNode) disableZoom();
@@ -126,11 +133,7 @@ function pointerUp(event) {
   pointerIsDown = false;
   if (focusingNode) {
     // This is a click to a node, not dragging
-    const offset = getOffset(map.canvas);
-    const [x, y] = map.transform.invert([
-      event.pageX - offset.left,
-      event.pageY - offset.top,
-    ]);
+    const [x, y] = getCoordination(map.canvas, event);
 
     map.hoveredNode = findClosestNode(x, y);
     if (map.hoveredNode) {
@@ -165,17 +168,11 @@ function stopDragging() {
 function findClosestNode(x, y) {
   let minDist = Infinity;
   let closestNode = null;
-
-  const mouseX = x * map.transform.k;
-  const mouseY = y * map.transform.k;
-  const coverage = 15 * map.transform.k;
+  const coverage = 15;
 
   map.nodes.forEach(node => {
-    const nodeX = node.x * map.transform.k + map.transform.x;
-    const nodeY = node.y * map.transform.k + map.transform.y;
-
     // Calculate distance between the mouse position
-    const dist = Math.hypot(nodeX - mouseX, nodeY - mouseY);
+    const dist = Math.hypot(node.x - x, node.y - y);
 
     // Scale selection tolerance based on zoom level
     if (dist < coverage && dist < minDist) {

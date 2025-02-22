@@ -108,6 +108,7 @@ body {
   z-index: 100;
   display: none;
   cursor: default;
+  align-items: center;
 }
 
 #search-input {

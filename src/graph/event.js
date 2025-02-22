@@ -20,14 +20,18 @@ export function initEvent(_map) {
   map.canvas.addEventListener("pointerdown", pointerDown);
   map.canvas.addEventListener("pointerup", pointerUp);
   map.canvas.addEventListener("contextmenu", e => {
+    // Right click
     if (e.button === 2) clearSelection();
+    // all other click will also be disabled
     e.preventDefault();
     return false;
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape") clearSelection();
-    e.preventDefault();
-    return false;
+    if (e.key === "Escape") {
+      clearSelection();
+      e.preventDefault();
+      return false;
+    }
   });
   resizeEventListener();
   checkSearchInputEventListener();

@@ -88,6 +88,7 @@ export function showMetadata(mrtDumpDate) {
   document.getElementById("metadata").innerHTML =
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer finder</a> | ` +
+  `<a onclick="javascript:window.dumpJson()">JSON</a> | ` +
   `Last update: ${mrtDumpDate}`;
 }
 

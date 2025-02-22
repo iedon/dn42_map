@@ -20,12 +20,13 @@ const nodeColorDefault = constants.render.node.colorDefault;
 const nodeLabelColor = constants.render.node.labelColor;
 
 const map = {
+  rawData: null,
   canvas: null,
   ctx: null,
   draw: null,
   simulation: null,
   nodes: null,
-  nodeMap: new Map(),
+  nodeMap: null,
   links: null,
   zoom: null,
   hoveredNode: null,
@@ -58,21 +59,24 @@ function initScale() {
   select(map.canvas).call(map.zoom.transform, zoomIdentity.scale(constants.render.canvas.initialScale));
 }
 
-function preprocessDataset(data) {
-  map.nodes = structuredClone(data.nodes);
-  map.links = structuredClone(data.links);
+function preprocessDataset(data, isDump=false) {
+  const nodes = structuredClone(data.nodes);
+  const links = structuredClone(data.links);
+  const nodeMap = new Map();
 
   // Convert links to use actual node object references
-  map.links.forEach(link => {
-    link.source = map.nodes[link.source ?? 0];
-    link.target = map.nodes[link.target ?? 0];
+  if (!isDump) links.forEach(link => {
+    link.source = nodes[link.source ?? 0];
+    link.target = nodes[link.target ?? 0];
   });
 
   // Setup peers and fast lookup map for nodes
-  map.nodes.forEach(node => {
-    node.peers = new Set();
-    map.nodeMap.set(node.asn.toString(), node);
-    map.nodeMap.set(node.desc.toLowerCase(), node);
+  nodes.forEach(node => {
+    if (!isDump) {
+      node.peers = new Set();
+      nodeMap.set(node.asn.toString(), node);
+      nodeMap.set(node.desc.toLowerCase(), node);
+    }
 
     node.label = node.desc
       .replace("-DN42", "")
@@ -82,14 +86,14 @@ function preprocessDataset(data) {
       .replace("ICVPN-", "")
       .replace("-CRXN", "");
 
-    node.labelFontSizeCalculated = scaleSqrt(
+    if (!isDump) node.labelFontSizeCalculated = scaleSqrt(
       [0, 12],
       [constants.render.node.labelFontSizePx / 4, constants.render.node.labelFontSizePx],
       12 - node.label.length * 0.5
     );
 
-    node.labelFontFamilyNormal = `${node.labelFontSizeCalculated}px ${constants.render.node.labelFontFamily}`;
-    node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
+    if (!isDump) node.labelFontFamilyNormal = `${node.labelFontSizeCalculated}px ${constants.render.node.labelFontFamily}`;
+    if (!isDump) node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
 
     const parsed = [];
     node.routes?.forEach(route => {
@@ -109,7 +113,7 @@ function preprocessDataset(data) {
     node.routes = parsed;
   });
 
-  map.links.forEach(link => {
+  if (!isDump) links.forEach(link => {
     if (link.source && link.target) {
       link.source.peers.add(link.target.asn);
       link.target.peers.add(link.source.asn);
@@ -117,10 +121,18 @@ function preprocessDataset(data) {
   });
 
   // Scale node sizes based on peer count
-  const maxPeers = Math.max(...map.nodes.map(n => n.peers.size), 1);
-  map.nodes.forEach(node => {
-    node.size = scaleSqrt([0, maxPeers], constants.render.node.scaleSqrtRange, node.peers.size);
-  });
+  if (!isDump) {
+    const maxPeers = Math.max(...nodes.map(n => n.peers.size), 1);
+    nodes.forEach(node => {
+      node.size = scaleSqrt([0, maxPeers], constants.render.node.scaleSqrtRange, node.peers.size);
+    });
+  }
+
+  return {
+    nodes,
+    links,
+    nodeMap
+  };
 }
 
 function initSimulation() {
@@ -207,12 +219,35 @@ map.draw = () => {
   ctx.restore();
 };
 
+// Dump JSON
+window.dumpJson = () => {
+  try {
+    const { nodes, links } = preprocessDataset(map.rawData, true);
+    const jsonString = JSON.stringify({ nodes, links }, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.style.display = "none";
+    link.href = url;
+    link.download = `map_dn42_${+new Date()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 /**
  * Initializes the map with given data and container ID.
  */
 export function initMap(data, containerSelector) {
+  map.rawData = data;
   initCanvas(containerSelector);
-  preprocessDataset(data);
+  Object.assign(map, preprocessDataset(data));
   initSimulation();
   initScale();
   initSidebar(map);

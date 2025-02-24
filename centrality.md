@@ -67,6 +67,9 @@ function calculateDN42Index(nodes) {
         node.dn42Index = (alpha * normBetweenness) +
                          (beta * normCloseness) +
                          (gamma * normDegree);
+
+        // To human readable integer
+        node.dn42Index = Math.round(node.dn42Index * 10000);
     });
 
     // Sort nodes based on DN42 Index (descending order)

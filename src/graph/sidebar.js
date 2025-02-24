@@ -38,7 +38,7 @@ export async function showSidebar(node) {
     
           <div class="index">
             <span>Map.dn42 Index</span>
-            <strong>${node.centrality.dn42Index.toFixed(3)}</strong>
+            <strong>${node.centrality.dn42Index}</strong>
           </div>
 
           <div class="rank">

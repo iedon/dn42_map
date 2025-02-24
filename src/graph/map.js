@@ -161,6 +161,7 @@ function preprocessDataset(data, isDump=false) {
       const normCloseness = node.centrality.closeness / maxCloseness;
       const normDegree = node.centrality.degree / maxDegree;
       node.centrality.dn42Index = (index_Alpha * normBetweenness) + (index_Beta * normCloseness) + (index_Gamma * normDegree);
+      node.centrality.dn42Index = Math.round(node.centrality.dn42Index * 10000);
     });
 
     // Sort by Map.dn42 Index

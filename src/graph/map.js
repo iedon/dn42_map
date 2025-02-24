@@ -8,6 +8,10 @@ import { initEvent } from "./event";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity } from "d3-zoom";
 import { forceSimulation, forceCenter, forceLink, forceManyBody } from "d3-force";
+import Graph from "graphology";
+import betweennessCentrality from "graphology-metrics/centrality/betweenness";
+import closenessCentrality from "graphology-metrics/centrality/closeness";
+import { degreeCentrality } from "graphology-metrics/centrality/degree";
 
 // Precompute colors and widths
 const linkColorDefault = constants.render.link.colorDefault;
@@ -31,6 +35,11 @@ const map = {
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
+  centrality: {
+    betweenness: null,
+    closeness: null,
+    degree: null
+  }
 };
 
 function initCanvas(containerSelector) {
@@ -64,18 +73,18 @@ function preprocessDataset(data, isDump=false) {
   const links = structuredClone(data.links);
   const nodeMap = new Map();
 
-  // Convert links to use actual node object references
-  if (!isDump) links.forEach(link => {
-    link.source = nodes[link.source ?? 0];
-    link.target = nodes[link.target ?? 0];
-  });
+  let graph, maxDegree, maxBetweenness, maxCloseness;
+  if (!isDump) graph = new Graph();
+  const index_Alpha = 0.5;
+  const index_Beta = 0.3;
+  const index_Gamma = 0.2;
 
   // Setup peers and fast lookup map for nodes
   nodes.forEach(node => {
     if (!isDump) {
-      node.peers = new Set();
       nodeMap.set(node.asn.toString(), node);
       nodeMap.set(node.desc.toLowerCase(), node);
+      graph.addNode(node.asn);
     }
 
     node.label = node.desc
@@ -113,18 +122,52 @@ function preprocessDataset(data, isDump=false) {
     node.routes = parsed;
   });
 
+  // Convert links to use actual node object references
   if (!isDump) links.forEach(link => {
+    link.source = nodes[link.source ?? 0];
+    link.target = nodes[link.target ?? 0];
     if (link.source && link.target) {
+      if (!link.source.peers) link.source.peers = new Set();
+      if (!link.target.peers) link.target.peers = new Set();
       link.source.peers.add(link.target.asn);
       link.target.peers.add(link.source.asn);
+  
+      graph.addDirectedEdge(link.source.asn, link.target.asn);
     }
   });
 
-  // Scale node sizes based on peer count
+  // Calculate centrality
+  if (!isDump) {
+    map.centrality.betweenness = betweennessCentrality(graph);
+    map.centrality.closeness = closenessCentrality(graph);
+    map.centrality.degree = degreeCentrality(graph);
+    maxBetweenness = Math.max(...Object.values(map.centrality.betweenness));
+    maxCloseness = Math.max(...Object.values(map.centrality.closeness));
+    maxDegree = Math.max(...Object.values(map.centrality.degree));
+  }
+
+  // Scale node sizes based on peer count, and assign centrality data to node
   if (!isDump) {
     const maxPeers = Math.max(...nodes.map(n => n.peers.size), 1);
     nodes.forEach(node => {
       node.size = scaleSqrt([0, maxPeers], constants.render.node.scaleSqrtRange, node.peers.size);
+      node.centrality = {};
+      node.centrality.betweenness = map.centrality.betweenness[node.asn] || 0;
+      node.centrality.closeness = map.centrality.closeness[node.asn] || 0;
+      node.centrality.degree = map.centrality.degree[node.asn] || 0;
+
+      // Map.dn42 Index
+      const normBetweenness = node.centrality.betweenness / maxBetweenness;
+      const normCloseness = node.centrality.closeness / maxCloseness;
+      const normDegree = node.centrality.degree / maxDegree;
+      node.centrality.dn42Index = (index_Alpha * normBetweenness) + (index_Beta * normCloseness) + (index_Gamma * normDegree);
+    });
+
+    // Sort by Map.dn42 Index
+    nodes
+    .sort((a, b) => b.centrality.dn42Index - a.centrality.dn42Index)
+    .forEach((node, index) => {
+      node.centrality.rank = index + 1;
     });
   }
 

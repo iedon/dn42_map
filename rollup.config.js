@@ -13,7 +13,9 @@ export default {
     sourcemap: false,
   },
   plugins: [
-    resolve(),
+    resolve({
+      preferBuiltins: false
+    }),
     commonjs(),
     terser({
       toplevel: true,

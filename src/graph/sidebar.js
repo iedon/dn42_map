@@ -22,10 +22,34 @@ export async function showSidebar(node) {
   showingSideBar = true;
   const sidebar = document.getElementById("sidebar");
   const sidebarContent = document.getElementById("sidebar-content");
+  document.getElementById("sidebar-title").innerText = node.desc;
   const onclick = asn => `onclick="javascript:window.navigateToNode(${asn},true)"`;
-  const header = `<p><b class="emphasized clickable" ${onclick(node.asn)}>${node.desc}</b></p>`;
   const routes = `<p><strong class="emphasized">Routes (${node.routes.length})</strong></p><ul>${node.routes.map(route =>`<li><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`).join("")}</ul>`;
   const neighbors = `<p><strong class="emphasized">Neighbors (${node.peers.size})</strong></p><ul>${[...node.peers].map(peerAsn => `<li><a ${onclick(peerAsn)}>${map.nodeMap.get(peerAsn.toString())?.desc || peerAsn}</a></li>`).join("")}</ul>`;
+
+  const renderCentralityCard = () => {
+      return `
+        <div class="centrality">
+          <div class="param">
+            <div>Degree <strong>${node.centrality.degree.toFixed(3)}</strong></div>
+            <div>Betweenness <strong>${node.centrality.betweenness.toFixed(3)}</strong></div>
+            <div>Closeness <strong>${node.centrality.closeness.toFixed(3)}</strong></div>
+          </div>
+    
+          <div class="index">
+            <span>Map.dn42 Index</span>
+            <strong>${node.centrality.dn42Index.toFixed(3)}</strong>
+          </div>
+
+          <div class="rank">
+            <span>Rank</span>
+            <strong># ${node.centrality.rank}</strong>
+          </div>
+        </div>
+      `;
+  };
+
+  const header = renderCentralityCard();
 
   const updateWithWhois = (whois, asn) => {
     const urlRegex = /(http:\/\/|https:\/\/)((\w|=|\?|\.|\/|&|-)+)/g;
@@ -89,7 +113,7 @@ export function showMetadata(mrtDumpDate) {
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer finder</a> | ` +
   `<a onclick="javascript:window.dumpJson()">JSON</a> | ` +
-  `Last update: ${mrtDumpDate}`;
+  `Map date: ${mrtDumpDate}`;
 }
 
 export async function showMyDN42Ip() {

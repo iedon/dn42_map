@@ -105,10 +105,12 @@ function pointerMove(event) {
     const hoveredNode = findClosestNode(x, y);
     // Change cursor to pointer if hovering a node
     map.canvas.style.cursor = hoveredNode ? "pointer" : "default";
-    if (hoveredNode && !getShowingSideBar()) {
-      map.hoveredNode = hoveredNode;
-      map.draw();
-      showTooltip(event, map.hoveredNode);
+    if (hoveredNode) {
+      if (!getShowingSideBar()) {
+        map.hoveredNode = hoveredNode;
+        map.draw();
+      }
+      showTooltip(event, hoveredNode);
       showingTooltip = true;
     } else {
       hideTooltip();

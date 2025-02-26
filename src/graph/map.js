@@ -31,6 +31,7 @@ const map = {
   simulation: null,
   nodes: null,
   nodeMap: null,
+  linkMap: null,
   links: null,
   zoom: null,
   hoveredNode: null,
@@ -72,6 +73,7 @@ function preprocessDataset(data, isDump=false) {
   const nodes = structuredClone(data.nodes);
   const links = structuredClone(data.links);
   const nodeMap = new Map();
+  const linkMap = new Map();
 
   let graph, maxDegree, maxBetweenness, maxCloseness;
   if (!isDump) graph = new Graph();
@@ -81,12 +83,6 @@ function preprocessDataset(data, isDump=false) {
 
   // Setup peers and fast lookup map for nodes
   nodes.forEach(node => {
-    if (!isDump) {
-      nodeMap.set(node.asn.toString(), node);
-      nodeMap.set(node.desc.toLowerCase(), node);
-      graph.addNode(node.asn);
-    }
-
     node.label = node.desc
       .replace("-DN42", "")
       .replace("-MNT", "")
@@ -94,6 +90,12 @@ function preprocessDataset(data, isDump=false) {
       .replace("-NEONETWORK", "")
       .replace("ICVPN-", "")
       .replace("-CRXN", "");
+
+    if (!isDump) {
+      nodeMap.set(node.asn.toString(), node);
+      nodeMap.set(node.label.toLowerCase(), node);
+      graph.addNode(node.asn);
+    }
 
     if (!isDump) node.labelFontSizeCalculated = scaleSqrt(
       [0, 12],
@@ -126,14 +128,12 @@ function preprocessDataset(data, isDump=false) {
   if (!isDump) links.forEach(link => {
     link.source = nodes[link.source ?? 0];
     link.target = nodes[link.target ?? 0];
-    if (link.source && link.target) {
-      if (!link.source.peers) link.source.peers = new Set();
-      if (!link.target.peers) link.target.peers = new Set();
-      link.source.peers.add(link.target.asn);
-      link.target.peers.add(link.source.asn);
-  
-      graph.addDirectedEdge(link.source.asn, link.target.asn);
-    }
+    if (!link.source.peers) link.source.peers = new Set();
+    if (!link.target.peers) link.target.peers = new Set();
+    link.source.peers.add(link.target.asn);
+    link.target.peers.add(link.source.asn);
+    linkMap.set(`${link.source.asn}_${link.target.asn}`, true);
+    graph.addDirectedEdge(link.source.asn, link.target.asn);
   });
 
   // Calculate centrality
@@ -148,9 +148,7 @@ function preprocessDataset(data, isDump=false) {
 
   // Scale node sizes based on peer count, and assign centrality data to node
   if (!isDump) {
-    const maxPeers = Math.max(...nodes.map(n => n.peers.size), 1);
     nodes.forEach(node => {
-      node.size = scaleSqrt([0, maxPeers], constants.render.node.scaleSqrtRange, node.peers.size);
       node.centrality = {};
       node.centrality.betweenness = map.centrality.betweenness[node.asn] || 0;
       node.centrality.closeness = map.centrality.closeness[node.asn] || 0;
@@ -162,6 +160,9 @@ function preprocessDataset(data, isDump=false) {
       const normDegree = node.centrality.degree / maxDegree;
       node.centrality.dn42Index = (index_Alpha * normBetweenness) + (index_Beta * normCloseness) + (index_Gamma * normDegree);
       node.centrality.dn42Index = Math.round(node.centrality.dn42Index * 10000);
+      node.size = scaleSqrt(constants.render.node.scaleSqrtDomain, constants.render.node.scaleSqrtRange, node.centrality.dn42Index) || constants.render.node.minSize;
+      node.size = Math.max(constants.render.node.minSize, node.size);
+      node.size = Math.min(constants.render.node.maxSize, node.size);
     });
 
     // Sort by Map.dn42 Index
@@ -175,7 +176,8 @@ function preprocessDataset(data, isDump=false) {
   return {
     nodes,
     links,
-    nodeMap
+    nodeMap,
+    linkMap
   };
 }
 
@@ -256,7 +258,7 @@ map.draw = () => {
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillStyle = nodeLabelColor;
-          ctx.fillText(d.label, d.x, d.y + d.size + d.labelFontSizeCalculated / 2 + 1);
+          ctx.fillText(d.label, d.x, d.y + d.size + d.labelFontSizeCalculated / 2 + 2);
       }
   });
 

@@ -14,7 +14,10 @@ export const constants = {
       backgroundColor: "#333",
     },
     node: {
-      scaleSqrtRange: [3, 15],
+      minSize: 3,
+      maxSize: 15,
+      scaleSqrtDomain: [1500, 10000],
+      scaleSqrtRange: [1, 15],
       colorDefault: "orange",
       colorCurrent: "red",
       colorLinked: "#667dfd",

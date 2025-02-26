@@ -223,12 +223,12 @@ button:hover {
 
 .emphasized {
   color: #fff;
+  font-weight: bold;
+  margin-top: 30px;
 }
 
 .whois {
-  border-radius: 4px;
   max-width: 400px;
-  margin: 5px auto;
   overflow: hidden;
   color: #e0e0e0;
 }
@@ -266,8 +266,9 @@ button:hover {
   background-color: #1f6922;
 }
 
-.whois td {
-  padding: 5px 10px;
+.whois td,
+.whois th {
+  padding: 5px;
   font-size: 12px;
   text-align: left;
   overflow-wrap: break-word;
@@ -277,6 +278,38 @@ button:hover {
   font-size: 12px;
   font-weight: bold;
   color: #81c784;
+  text-align: left;
+}
+
+.whois td.rank,
+.whois td.asn,
+.whois td.name,
+.whois td.index,
+.whois td.to,
+.whois td.from {
+  cursor: pointer;
+}
+
+.whois .rank {
+  width: 15%;
+}
+
+.whois .index {
+  width: 15%;
+}
+
+.whois .asn {
+  width: 30%;
+}
+
+.whois .name {
+  width: 40%;
+}
+
+.whois .to,
+.whois .from {
+  width: 15%;
+  text-align: center;
 }
 
 * {

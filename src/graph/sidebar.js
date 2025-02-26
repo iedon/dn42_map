@@ -22,32 +22,22 @@ export async function showSidebar(node) {
   showingSideBar = true;
   const sidebar = document.getElementById("sidebar");
   const sidebarContent = document.getElementById("sidebar-content");
-  document.getElementById("sidebar-title").innerText = node.desc;
   const onclick = asn => `onclick="javascript:window.navigateToNode(${asn},true)"`;
-  const routes = `<p><strong class="emphasized">Routes (${node.routes.length})</strong></p><ul>${node.routes.map(route =>`<li><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`).join("")}</ul>`;
-  const neighbors = `<p><strong class="emphasized">Neighbors (${node.peers.size})</strong></p><ul>${[...node.peers].map(peerAsn => `<li><a ${onclick(peerAsn)}>${map.nodeMap.get(peerAsn.toString())?.desc || peerAsn}</a></li>`).join("")}</ul>`;
 
-  const renderCentralityCard = () => {
-      return `
-        <div class="centrality">
-          <div class="param">
-            <div>Degree <strong>${node.centrality.degree.toFixed(3)}</strong></div>
-            <div>Betweenness <strong>${node.centrality.betweenness.toFixed(3)}</strong></div>
-            <div>Closeness <strong>${node.centrality.closeness.toFixed(3)}</strong></div>
-          </div>
-    
-          <div class="index">
-            <span>Map.dn42 Index</span>
-            <strong>${node.centrality.dn42Index}</strong>
-          </div>
+  // Showing ranking
+  if (!node) {
+    document.getElementById("sidebar-title").innerText = "Ranking";
+    sidebarContent.innerHTML = `<div class="whois"><table><thead><tr><th class="key rank">Rank</th><th class="key asn">ASN</th><th class="key name">Name</th><th class="key index">Index</th></tr></thead><tbody>${map.nodes.map((node, i) => `<tr ${onclick(node.asn)}><td class="rank">${i + 1}</td><td class="asn">${node.asn}</td><td class="name">${node.label || "-"}</td><td class="index">${node.centrality.dn42Index}</td></tr>`).join("")}</tbody></table></div>`;
+    sidebar.style.left = "0";
+    sidebar.scrollTop = 0;
+    return;
+  }
 
-          <div class="rank">
-            <span>Rank</span>
-            <strong># ${node.centrality.rank}</strong>
-          </div>
-        </div>
-      `;
-  };
+  document.getElementById("sidebar-title").innerText = node.desc;
+  const routes = `<p class="emphasized">Routes (${node.routes.length})</p><ul>${node.routes.map(route =>`<li><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`).join("")}</ul>`;
+  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table><thead><tr><th class="key asn">ASN</th><th class="key name">Name</th><th class="key to">To</th><th class="key from">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✅" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✅" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+
+  const renderCentralityCard = () => `<div class="centrality"><div class="param"><div>Degree <strong>${node.centrality.degree.toFixed(3)}</strong></div><div>Betweenness <strong>${node.centrality.betweenness.toFixed(3)}</strong></div><div>Closeness <strong>${node.centrality.closeness.toFixed(3)}</strong></div></div><div class="index"><span>Map.dn42 Index</span><strong>${node.centrality.dn42Index}</strong></div><div class="rank"><span>Rank</span><strong># ${node.centrality.rank}</strong></div></div>`;
 
   const header = renderCentralityCard();
 
@@ -103,6 +93,8 @@ export async function showSidebar(node) {
   }
 }
 
+window.toggleRanking = showSidebar;
+
 export function closeSideBar() {
   showingSideBar = false;
   document.getElementById("sidebar").style.left = "-500px";
@@ -113,6 +105,7 @@ export function showMetadata(mrtDumpDate) {
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer finder</a> | ` +
   `<a onclick="javascript:window.dumpJson()">JSON</a> | ` +
+  `<a onclick="javascript:window.toggleRanking()">Rank</a> | ` +
   `Map date: ${mrtDumpDate}`;
 }
 

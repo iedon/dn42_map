@@ -51,8 +51,8 @@ REGISTRY_PATH = "./registry"
 MRT_BASIC_AUTH_USER = os.environ.get('MRT_BASIC_AUTH_USER')
 MRT_BASIC_AUTH_PASSWORD = os.environ.get('MRT_BASIC_AUTH_PASSWORD')
 
-MASTER4_URL = 'https://mrt.kuu.moe/master4_latest.mrt.bz2'
-MASTER6_URL = 'https://mrt.kuu.moe/master6_latest.mrt.bz2'
+MASTER4_URL = 'https://mrt.iedon.net/master4_latest.mrt.bz2'
+MASTER6_URL = 'https://mrt.iedon.net/master6_latest.mrt.bz2'
 OUTPUT_PROTO_FILE = './map.bin'
 
 # ------------------------------------------------------------------------------
@@ -239,6 +239,8 @@ async def main():
     merged_advertises = {}
     merged_metadata = None
     for result in results:
+        if len(result.get("as_paths", [])) == 0:
+            raise "Empty result set."
         merged_as_paths.extend(result.get("as_paths", []))
         advertises = result.get("advertises", {})
         for asn, routes in advertises.items():
@@ -316,6 +318,7 @@ async def main():
         logging.info("Graph protobuf written to %s", OUTPUT_PROTO_FILE)
     except Exception as e:
         logging.exception("Failed to write graph protobuf: %s", e)
+        exit(1)
 
 # ------------------------------------------------------------------------------
 # Entry Point
@@ -325,3 +328,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except Exception as e:
         logging.exception("An error occurred: %s", e)
+        exit(1)

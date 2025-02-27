@@ -43,6 +43,10 @@ export const constants = {
       window.location.href.includes(".dn42")
         ? "https://wiki.dn42/"
         : "https://dn42.dev/",
+    routeGraphsUrl:
+      window.location.href.includes(".dn42")
+        ? "https://routegraphs.highdef.dn42/"
+        : "https://routegraphs.highdef.network/",
     peerFinderUrl: "https://dn42.us/peers/",
     myIpUrl: `${location.protocol}//map.dn42/myip/`,
     myIpApi: `${location.protocol}//map.dn42/myip/api`

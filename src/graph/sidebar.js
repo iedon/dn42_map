@@ -103,10 +103,11 @@ export function closeSideBar() {
 export function showMetadata(mrtDumpDate) {
   document.getElementById("metadata").innerHTML =
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
-  `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer finder</a> | ` +
-  `<a onclick="javascript:window.dumpJson()">JSON</a> | ` +
-  `<a onclick="javascript:window.toggleRanking()">Rank</a> | ` +
-  `Map date: ${mrtDumpDate}`;
+  `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer Finder</a> | ` +
+  `<a href="${constants.dn42.routeGraphsUrl}" target="_blank">Route Graphs</a> | ` +
+  `<a onclick="javascript:window.dumpJson()">Dump</a> | ` +
+  `<a onclick="javascript:window.toggleRanking()">Ranking</a> | ` +
+  `Ver. ${mrtDumpDate}`;
 }
 
 export async function showMyDN42Ip() {

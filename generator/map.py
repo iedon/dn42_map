@@ -171,7 +171,6 @@ def process_mrt_sync(mrt_bytes: bytes) -> dict:
                     else:
                         continue
 
-                    by = None
                     for rib_entry in data.get("rib_entries", []):
                         for attr in rib_entry.get("path_attributes", []):
                             attr_type = None
@@ -179,18 +178,19 @@ def process_mrt_sync(mrt_bytes: bytes) -> dict:
                                 attr_type = next(iter(attr["type"].keys()))
                             if attr_type == 2:  # AS_PATH attribute.
                                 parsed_as_path = []
+                                by = None
                                 for as_sequence in attr.get("value", []):
                                     seq_type = None
                                     if isinstance(as_sequence.get("type"), dict):
                                         seq_type = next(iter(as_sequence["type"].keys()))
-                                    if seq_type == 2:
+                                    if seq_type == 2: # AS_SEQUENCE
                                         parsed_as_path.extend(as_sequence.get("value", []))
                                 if parsed_as_path:
                                     if by is None:
                                         by = parsed_as_path[-1]
                                     as_paths.append(parsed_as_path)
-                    if by is not None:
-                        advertises.setdefault(by, set()).add(cidr_tuple)
+                                if by is not None:
+                                    advertises.setdefault(by, set()).add(cidr_tuple)
                 else:
                     continue
     except Exception as e:

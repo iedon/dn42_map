@@ -55,10 +55,8 @@ jobs:
 
           echo "Generating map..."
           cd generator
-          go mod download
-          go build -o mapdn42
-          cp config.sample.json config.json
-          ./mapdn42
+          chmod +x cicd_gen.sh
+          ./cicd_gen.sh
           cp map.bin ../pages/
           cd ..
 

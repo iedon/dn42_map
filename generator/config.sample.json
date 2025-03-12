@@ -1,5 +1,5 @@
 {
-    "registry_path": "./registry",
+    "registry_path": "./dn42registry",
     "output_file": "./map.bin",
     "mrt_collector": {
         "master4_url": "https://mrt.iedon.net/master4_latest.mrt.bz2",

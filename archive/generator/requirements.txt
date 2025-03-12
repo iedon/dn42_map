@@ -1,0 +1,6 @@
+asyncio==3.4.3
+aiohttp==3.11.12
+aiofiles==24.1.0
+mrtparse==2.2.0
+uvloop==0.21.0
+protobuf==5.29.3

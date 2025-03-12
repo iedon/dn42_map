@@ -104,7 +104,7 @@ function pointerMove(event) {
   if (!pointerIsDown) {
     const hoveredNode = findClosestNode(x, y);
     // Change cursor to pointer if hovering a node
-    map.canvas.style.cursor = hoveredNode ? "pointer" : "default";
+    map.canvas.style.cursor = hoveredNode ? "pointer" : "grab";
     if (hoveredNode) {
       if (!getShowingSideBar()) {
         map.hoveredNode = hoveredNode;
@@ -117,7 +117,7 @@ function pointerMove(event) {
       showingTooltip = false;
     }
   } else {
-    map.canvas.style.cursor = "grab";
+    map.canvas.style.cursor = "grabbing";
   }
 }
 
@@ -126,7 +126,11 @@ function pointerDown(event) {
   const [x, y] = getCoordination(map.canvas, event);
 
   focusingNode = findClosestNode(x, y);
-  if (focusingNode) disableZoom();
+  if (focusingNode) {
+    disableZoom();
+  } else {
+    map.canvas.style.cursor = "grabbing";
+  }
 }
 
 function pointerLeave() {
@@ -153,7 +157,7 @@ function pointerUp(event) {
     return;
   }
 
-  map.canvas.style.cursor = "default";
+  map.canvas.style.cursor = "grab";
   stopDragging();
 }
 

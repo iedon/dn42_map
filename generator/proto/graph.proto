@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package dn42_map;
+
+option go_package = "github.com/iedon/dn42_map_go/proto";
+
+// Node represents an AS node
+message Node {
+  uint32 asn = 1;
+  string desc = 2;
+  repeated Route routes = 3;
+  Centrality centrality = 4;
+}
+
+// Centrality stores the centrality metrics of a node
+message Centrality {
+  double degree = 1;
+  double betweenness = 2;
+  double closeness = 3;
+  uint32 index = 4;  // dn42Index
+  uint32 ranking = 5;
+}
+
+// Route represents a route entry
+message Route {
+  uint32 length = 1;
+  oneof ip {
+    uint32 ipv4 = 2;
+    IPv6 ipv6 = 3;
+  }
+}
+
+// IPv6 represents an IPv6 address
+message IPv6 {
+  uint32 high_h32 = 1;
+  uint32 high_l32 = 2;
+  uint32 low_h32 = 3;
+  uint32 low_l32 = 4;
+}
+
+// Link represents a connection between two ASes
+message Link {
+  uint32 source = 1;
+  uint32 target = 2;
+}
+
+// Contains metadata information about the graph.
+message Metadata {
+    string vendor = 1;
+    uint64 generated_timestamp = 2;
+    uint64 data_timestamp = 3;
+}
+
+// Graph represents the entire network topology
+message Graph {
+    Metadata metadata = 1;
+    repeated Node nodes = 2;
+    repeated Link links = 3;
+}

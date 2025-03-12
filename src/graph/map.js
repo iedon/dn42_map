@@ -1,17 +1,18 @@
 // src/graph/map.js
 
 import { constants } from "../constants";
-import { ipv4FromUint32, ipv6FromQuard32 } from "../utils/ipUtil"
+import { ipv4FromUint32, ipv6FromQuard32 } from "../utils/ipUtil";
 import { scaleSqrt } from "../utils/scaleUtil";
 import { initSidebar } from "./sidebar";
 import { initEvent } from "./event";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity } from "d3-zoom";
-import { forceSimulation, forceCenter, forceLink, forceManyBody } from "d3-force";
-import Graph from "graphology";
-import betweennessCentrality from "graphology-metrics/centrality/betweenness";
-import closenessCentrality from "graphology-metrics/centrality/closeness";
-import { degreeCentrality } from "graphology-metrics/centrality/degree";
+import {
+  forceSimulation,
+  forceCenter,
+  forceLink,
+  forceManyBody,
+} from "d3-force";
 
 // Precompute colors and widths
 const linkColorDefault = constants.render.link.colorDefault;
@@ -36,11 +37,6 @@ const map = {
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
-  centrality: {
-    betweenness: null,
-    closeness: null,
-    degree: null
-  }
 };
 
 function initCanvas(containerSelector) {
@@ -57,29 +53,26 @@ function initCanvas(containerSelector) {
 
   // Zoom & Pan
   map.zoom = d3zoom()
-  .scaleExtent([0.3, 4])
-  .on("zoom", (event) => {
+    .scaleExtent([0.3, 4])
+    .on("zoom", event => {
       map.transform = event.transform;
       map.draw();
-  });
+    });
 }
 
 function initScale() {
   // Set initial scale
-  select(map.canvas).call(map.zoom.transform, zoomIdentity.scale(constants.render.canvas.initialScale));
+  select(map.canvas).call(
+    map.zoom.transform,
+    zoomIdentity.scale(constants.render.canvas.initialScale)
+  );
 }
 
-function preprocessDataset(data, isDump=false) {
+function preprocessDataset(data, isDump = false) {
   const nodes = structuredClone(data.nodes);
   const links = structuredClone(data.links);
   const nodeMap = new Map();
   const linkMap = new Map();
-
-  let graph, maxDegree, maxBetweenness, maxCloseness;
-  if (!isDump) graph = new Graph();
-  const index_Alpha = 0.5;
-  const index_Beta = 0.3;
-  const index_Gamma = 0.2;
 
   // Setup peers and fast lookup map for nodes
   nodes.forEach(node => {
@@ -94,17 +87,22 @@ function preprocessDataset(data, isDump=false) {
     if (!isDump) {
       nodeMap.set(node.asn.toString(), node);
       nodeMap.set(node.label.toLowerCase(), node);
-      graph.addNode(node.asn);
     }
 
-    if (!isDump) node.labelFontSizeCalculated = scaleSqrt(
-      [0, 12],
-      [constants.render.node.labelFontSizePx / 4, constants.render.node.labelFontSizePx],
-      12 - node.label.length * 0.5
-    );
+    if (!isDump)
+      node.labelFontSizeCalculated = scaleSqrt(
+        [0, 12],
+        [
+          constants.render.node.labelFontSizePx / 4,
+          constants.render.node.labelFontSizePx,
+        ],
+        12 - node.label.length * 0.5
+      );
 
-    if (!isDump) node.labelFontFamilyNormal = `${node.labelFontSizeCalculated}px ${constants.render.node.labelFontFamily}`;
-    if (!isDump) node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
+    if (!isDump)
+      node.labelFontFamilyNormal = `${node.labelFontSizeCalculated}px ${constants.render.node.labelFontFamily}`;
+    if (!isDump)
+      node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
 
     const parsed = [];
     node.routes?.forEach(route => {
@@ -115,61 +113,45 @@ function preprocessDataset(data, isDump=false) {
         const ipStr = ipv4FromUint32(route.ipv4);
         parsed.push(`${ipStr}/${length}`);
       } else if (route.ipv6 != null) {
-        const ipStr = ipv6FromQuard32(route.ipv6.high_h32, route.ipv6.high_l32, route.ipv6.low_h32, route.ipv6.low_l32);
+        const ipStr = ipv6FromQuard32(
+          route.ipv6.high_h32,
+          route.ipv6.high_l32,
+          route.ipv6.low_h32,
+          route.ipv6.low_l32
+        );
         parsed.push(`${ipStr}/${length}`);
       } else {
-        console.warn(`[preprocess] Unknown or empty IP route for AS${node.asn}, skipped.`);
+        console.warn(
+          `[preprocess] Unknown or empty IP route for AS${node.asn}, skipped.`
+        );
       }
     });
     node.routes = parsed;
   });
 
   // Convert links to use actual node object references
-  if (!isDump) links.forEach(link => {
-    link.source = nodes[link.source ?? 0];
-    link.target = nodes[link.target ?? 0];
-    if (!link.source.peers) link.source.peers = new Set();
-    if (!link.target.peers) link.target.peers = new Set();
-    link.source.peers.add(link.target.asn);
-    link.target.peers.add(link.source.asn);
-    linkMap.set(`${link.source.asn}_${link.target.asn}`, true);
-    graph.addDirectedEdge(link.source.asn, link.target.asn);
-  });
-
-  // Calculate centrality
-  if (!isDump) {
-    map.centrality.betweenness = betweennessCentrality(graph);
-    map.centrality.closeness = closenessCentrality(graph);
-    map.centrality.degree = degreeCentrality(graph);
-    maxBetweenness = Math.max(...Object.values(map.centrality.betweenness));
-    maxCloseness = Math.max(...Object.values(map.centrality.closeness));
-    maxDegree = Math.max(...Object.values(map.centrality.degree));
-  }
-
-  // Scale node sizes based on peer count, and assign centrality data to node
-  if (!isDump) {
-    nodes.forEach(node => {
-      node.centrality = {};
-      node.centrality.betweenness = map.centrality.betweenness[node.asn] || 0;
-      node.centrality.closeness = map.centrality.closeness[node.asn] || 0;
-      node.centrality.degree = map.centrality.degree[node.asn] || 0;
-
-      // Map.dn42 Index
-      const normBetweenness = node.centrality.betweenness / maxBetweenness;
-      const normCloseness = node.centrality.closeness / maxCloseness;
-      const normDegree = node.centrality.degree / maxDegree;
-      node.centrality.dn42Index = (index_Alpha * normBetweenness) + (index_Beta * normCloseness) + (index_Gamma * normDegree);
-      node.centrality.dn42Index = Math.round(node.centrality.dn42Index * 10000);
-      node.size = scaleSqrt(constants.render.node.scaleSqrtDomain, constants.render.node.scaleSqrtRange, node.centrality.dn42Index) || constants.render.node.minSize;
-      node.size = Math.max(constants.render.node.minSize, node.size);
-      node.size = Math.min(constants.render.node.maxSize, node.size);
+  if (!isDump)
+    links.forEach(link => {
+      link.source = nodes[link.source ?? 0];
+      link.target = nodes[link.target ?? 0];
+      if (!link.source.peers) link.source.peers = new Set();
+      if (!link.target.peers) link.target.peers = new Set();
+      link.source.peers.add(link.target.asn);
+      link.target.peers.add(link.source.asn);
+      linkMap.set(`${link.source.asn}_${link.target.asn}`, true);
     });
 
-    // Sort by Map.dn42 Index
-    nodes
-    .sort((a, b) => b.centrality.dn42Index - a.centrality.dn42Index)
-    .forEach((node, index) => {
-      node.centrality.rank = index + 1;
+  // Scale node sizes based on peer count
+  if (!isDump) {
+    nodes.forEach(node => {
+      node.size =
+        scaleSqrt(
+          constants.render.node.scaleSqrtDomain,
+          constants.render.node.scaleSqrtRange,
+          node.centrality.index
+        ) || constants.render.node.minSize;
+      node.size = Math.max(constants.render.node.minSize, node.size);
+      node.size = Math.min(constants.render.node.maxSize, node.size);
     });
   }
 
@@ -177,15 +159,23 @@ function preprocessDataset(data, isDump=false) {
     nodes,
     links,
     nodeMap,
-    linkMap
+    linkMap,
   };
 }
 
 function initSimulation() {
   // Force Simulation
   map.simulation = forceSimulation(map.nodes)
-    .force("link", forceLink(map.links).id(d => d.asn).distance(constants.render.d3force.linkDistance))
-    .force("charge", forceManyBody().strength(constants.render.d3force.manyBodyStrength))
+    .force(
+      "link",
+      forceLink(map.links)
+        .id(d => d.asn)
+        .distance(constants.render.d3force.linkDistance)
+    )
+    .force(
+      "charge",
+      forceManyBody().strength(constants.render.d3force.manyBodyStrength)
+    )
     .force("center", forceCenter(window.innerWidth / 2, window.innerHeight / 2))
     .alphaDecay(constants.render.d3force.alphaDecay)
     .on("tick", map.draw);
@@ -206,60 +196,68 @@ map.draw = () => {
 
   // Draw all links in one loop
   links.forEach(d => {
-      if (!hoveredNode || (d.source !== hoveredNode && d.target !== hoveredNode)) {
-          ctx.beginPath();
-          ctx.moveTo(d.source.x, d.source.y);
-          ctx.lineTo(d.target.x, d.target.y);
-          ctx.strokeStyle = linkColorDefault;
-          ctx.lineWidth = linkWidthDefault;
-          ctx.stroke();
-      }
+    if (
+      !hoveredNode ||
+      (d.source !== hoveredNode && d.target !== hoveredNode)
+    ) {
+      ctx.beginPath();
+      ctx.moveTo(d.source.x, d.source.y);
+      ctx.lineTo(d.target.x, d.target.y);
+      ctx.strokeStyle = linkColorDefault;
+      ctx.lineWidth = linkWidthDefault;
+      ctx.stroke();
+    }
   });
 
   // Draw emphasized links separately
   if (hoveredNode) {
-      links.forEach(d => {
-          if (d.source === hoveredNode || d.target === hoveredNode) {
-              ctx.beginPath();
-              ctx.moveTo(d.source.x, d.source.y);
-              ctx.lineTo(d.target.x, d.target.y);
-              ctx.strokeStyle = linkColorEmphasize;
-              ctx.lineWidth = linkWidthEmphasize;
-              ctx.stroke();
-          }
-      });
+    links.forEach(d => {
+      if (d.source === hoveredNode || d.target === hoveredNode) {
+        ctx.beginPath();
+        ctx.moveTo(d.source.x, d.source.y);
+        ctx.lineTo(d.target.x, d.target.y);
+        ctx.strokeStyle = linkColorEmphasize;
+        ctx.lineWidth = linkWidthEmphasize;
+        ctx.stroke();
+      }
+    });
   }
 
   const zoomSufficient = transform.k >= 0.65;
 
   // Draw nodes
   nodes.forEach(d => {
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
 
-      if (d === hoveredNode) {
-          ctx.fillStyle = nodeColorCurrent;
-      } else if (hoveredNode && hoveredNode.peers.has(d.asn)) {
-          ctx.fillStyle = nodeColorLinked;
-      } else {
-          ctx.fillStyle = nodeColorDefault;
-      }
+    if (d === hoveredNode) {
+      ctx.fillStyle = nodeColorCurrent;
+    } else if (hoveredNode && hoveredNode.peers.has(d.asn)) {
+      ctx.fillStyle = nodeColorLinked;
+    } else {
+      ctx.fillStyle = nodeColorDefault;
+    }
 
-      ctx.fill();
+    ctx.fill();
 
-      // draw border 0.5px, removed due to switched to dark theme
-      // ctx.strokeStyle = "#fff";
-      // ctx.lineWidth = 0.5;
-      // ctx.stroke();
+    // draw border 0.5px, removed due to switched to dark theme
+    // ctx.strokeStyle = "#fff";
+    // ctx.lineWidth = 0.5;
+    // ctx.stroke();
 
-      // Draw labels only if zoom level is sufficient
-      if (zoomSufficient) {
-          ctx.font = d === hoveredNode ? d.labelFontFamilyBold : d.labelFontFamilyNormal;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = nodeLabelColor;
-          ctx.fillText(d.label, d.x, d.y + d.size + d.labelFontSizeCalculated / 2 + 2);
-      }
+    // Draw labels only if zoom level is sufficient
+    if (zoomSufficient) {
+      ctx.font =
+        d === hoveredNode ? d.labelFontFamilyBold : d.labelFontFamilyNormal;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = nodeLabelColor;
+      ctx.fillText(
+        d.label,
+        d.x,
+        d.y + d.size + d.labelFontSizeCalculated / 2 + 2
+      );
+    }
   });
 
   ctx.restore();
@@ -280,7 +278,7 @@ window.dumpJson = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  
+
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error(error);

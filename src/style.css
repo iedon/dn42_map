@@ -364,14 +364,13 @@ button:hover {
 
 .centrality .param div {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   font-size: 10px;
   margin: 1px 10px 1px 0px;
   color: #eee;
 }
 
 .centrality .param div strong {
-  margin: 0 10px;
   color: #fff;
 }
 

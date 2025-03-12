@@ -12,8 +12,6 @@
     "license": "GPL-3.0-only",
     "dependencies": {
         "d3": "^7.9.0",
-        "graphology": "^0.26.0",
-        "graphology-metrics": "^2.3.1",
         "protobufjs": "^7.4.0"
     },
     "devDependencies": {

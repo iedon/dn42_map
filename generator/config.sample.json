@@ -1,6 +1,7 @@
 {
     "registry_path": "./dn42registry",
     "output_file": "./map.bin",
+    "post_generation_command": "",
     "mrt_collector": {
         "master4_url": "https://mrt.iedon.net/master4_latest.mrt.bz2",
         "master6_url": "https://mrt.iedon.net/master6_latest.mrt.bz2",

@@ -11,10 +11,11 @@ import (
 
 // Config structure
 type Config struct {
-	RegistryPath string    `json:"registry_path"`
-	OutputFile   string    `json:"output_file"`
-	MRTCollector Collector `json:"mrt_collector"`
-	API          API       `json:"api"`
+	RegistryPath          string    `json:"registry_path"`
+	OutputFile            string    `json:"output_file"`
+	PostGenerationCommand string    `json:"post_generation_command"`
+	MRTCollector          Collector `json:"mrt_collector"`
+	API                   API       `json:"api"`
 }
 
 // Collector configuration for MRT

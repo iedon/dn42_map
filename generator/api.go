@@ -10,6 +10,20 @@ import (
 	pb "github.com/iedon/dn42_map_go/proto"
 )
 
+// setHeaders sets HTTP headers for responses
+func setHeaders(w http.ResponseWriter, contentType string, lastModified *time.Time) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Max-Age", "600")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Requested-With")
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Pragma", "no-cache")
+	if lastModified != nil {
+		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
+	}
+}
+
 // handleGenerate handles /generate requests
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
 	// Validate authentication token

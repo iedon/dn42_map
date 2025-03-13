@@ -12,7 +12,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -216,23 +218,31 @@ func (s *Server) generateMap() error {
 	s.lastModified = time.Now()
 	s.graphMutex.Unlock()
 
+	// Execute post-generation command if specified
+	if s.config.PostGenerationCommand != "" {
+		var cmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd", "/c", s.config.PostGenerationCommand)
+		} else {
+			cmd = exec.Command("sh", "-c", s.config.PostGenerationCommand)
+		}
+
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Start(); err != nil {
+			log.Printf("Error starting post generation command: %v", err)
+		} else {
+			go func() {
+				if err := cmd.Wait(); err != nil {
+					log.Printf("Post generation command exited with error: %v", err)
+				}
+			}()
+		}
+	}
+
 	log.Printf("Map generation completed in %v", time.Since(start))
 	return nil
-}
-
-// setHeaders sets HTTP headers for responses
-func setHeaders(w http.ResponseWriter, contentType string, lastModified *time.Time) {
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Max-Age", "3600")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-	if lastModified != nil {
-		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
-	}
 }
 
 // checkIfModified checks if the response should be modified based on If-Modified-Since header

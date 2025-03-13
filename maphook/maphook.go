@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
 	"crypto/tls"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,20 +11,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 )
 
 type Config struct {
-	WebHook struct {
-		Port      string `json:"port"`
-		Secret    string `json:"secret"`
-		EventType string `json:"event_type"`
-		ShellCmd  string `json:"shell_command"`
-	} `json:"webhook"`
-
 	MRT struct {
 		URL              string `json:"url"`
 		CheckInterval    int    `json:"check_interval"`
@@ -35,11 +23,11 @@ type Config struct {
 		CustomDNSServer  string `json:"custom_dns_server"`
 	} `json:"mrt"`
 
-	GitHub struct {
-		WorkflowAPI string `json:"workflow_api"`
-		StatusFile  string `json:"status_file"`
-		Token       string `json:"token"`
-	} `json:"github"`
+	Generator struct {
+		APIURL     string `json:"api_url"`
+		AuthToken  string `json:"auth_token"`
+		StatusFile string `json:"status_file"`
+	} `json:"generator"`
 }
 
 type MRTStatus struct {
@@ -57,50 +45,7 @@ func loadConfig(path string) error {
 	return json.Unmarshal(data, &config)
 }
 
-// ========= WebHook =========
-
-func handleWebhook(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	if !validateSignature(r, body) {
-		http.Error(w, "Invalid signature", http.StatusUnauthorized)
-		return
-	}
-
-	event := r.Header.Get("X-GitHub-Event")
-	if event == config.WebHook.EventType {
-		executeShellCommand()
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func validateSignature(r *http.Request, body []byte) bool {
-	signature := r.Header.Get("X-Hub-Signature-256")
-	h := hmac.New(sha256.New, []byte(config.WebHook.Secret))
-	h.Write(body)
-	computedSignature := "sha256=" + hex.EncodeToString(h.Sum(nil))
-	return hmac.Equal([]byte(signature), []byte(computedSignature))
-}
-
-func executeShellCommand() {
-	cmd := exec.Command("/bin/bash", "-c", config.WebHook.ShellCmd)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Shell command failed: %v", err)
-	}
-	log.Printf("Shell command output: %s", output)
-}
-
-// ========= GRC MRT Active Check =========
+// ========= MRT Active Check =========
 
 func fetchMRTDates() (string, string, error) {
 	resolver := &net.Resolver{
@@ -171,25 +116,25 @@ func saveStatus(path string, status MRTStatus) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func triggerGitHubWorkflow() error {
-	payload := `{"ref":"main","inputs":{}}`
-	req, err := http.NewRequest("POST", config.GitHub.WorkflowAPI, strings.NewReader(payload))
+func triggerMapGeneration() error {
+	req, err := http.NewRequest("POST", config.Generator.APIURL, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+config.GitHub.Token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	req.Header.Set("Authorization", "Bearer "+config.Generator.AuthToken)
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNoContent {
-		data, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Unexpected HTTP Status code: %d, %s", resp.StatusCode, data)
+
+	if resp.StatusCode != http.StatusAccepted {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 	return nil
 }
@@ -206,18 +151,12 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	if !checkFileExists(config.GitHub.StatusFile) {
-		err := os.WriteFile(config.GitHub.StatusFile, []byte{}, 0644)
+	if !checkFileExists(config.Generator.StatusFile) {
+		err := os.WriteFile(config.Generator.StatusFile, []byte{}, 0644)
 		if err != nil {
-			log.Fatalf("Failed to create file \"%s\": %v", config.GitHub.StatusFile, err)
+			log.Fatalf("Failed to create file \"%s\": %v", config.Generator.StatusFile, err)
 		}
 	}
-
-	go func() {
-		http.HandleFunc("/webhook", handleWebhook)
-		log.Printf("Listening for webhook on port %s", config.WebHook.Port)
-		http.ListenAndServe(":"+config.WebHook.Port, nil)
-	}()
 
 	for {
 		master4Date, master6Date, err := fetchMRTDates()
@@ -227,14 +166,15 @@ func main() {
 			continue
 		}
 
-		status, _ := loadStatus(config.GitHub.StatusFile)
+		status, _ := loadStatus(config.Generator.StatusFile)
 		if master4Date != status.Master4Date || master6Date != status.Master6Date {
-			log.Println("MRT Update detected, triggering workflow...")
-			if err := triggerGitHubWorkflow(); err == nil {
+			log.Println("MRT Update detected, triggering map generation...")
+			if err := triggerMapGeneration(); err == nil {
 				newStatus := MRTStatus{Master4Date: master4Date, Master6Date: master6Date}
-				saveStatus(config.GitHub.StatusFile, newStatus)
+				saveStatus(config.Generator.StatusFile, newStatus)
+				log.Println("Map generation triggered successfully")
 			} else {
-				log.Printf("Trigger GitHub workflow failed: %v", err)
+				log.Printf("Failed to trigger map generation: %v", err)
 			}
 		}
 		time.Sleep(time.Duration(config.MRT.CheckInterval) * time.Second)

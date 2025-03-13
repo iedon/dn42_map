@@ -13,9 +13,9 @@ import (
 // setHeaders sets HTTP headers for responses
 func setHeaders(w http.ResponseWriter, contentType string, lastModified *time.Time) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Max-Age", "600")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Requested-With")
+	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Cache-Control, Pragma")
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Pragma", "no-cache")

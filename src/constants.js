@@ -7,7 +7,7 @@ export const constants = {
     d3force: {
       linkDistance: 100,
       manyBodyStrength: -500,
-      alphaDecay: 0.05
+      alphaDecay: 0.05,
     },
     canvas: {
       initialScale: 1.45,
@@ -34,21 +34,21 @@ export const constants = {
   },
   dn42: {
     accessingFromDn42: window.location.href.includes(".dn42"),
-    whoisApi: "https://api.iedon.com/dn42/whois",
-    explorerUrl:
-      window.location.href.includes(".dn42")
-        ? "http://explorer.burble.dn42/?#/"
-        : "https://explorer.burble.com/?#/",
-    homeUrl:
-      window.location.href.includes(".dn42")
-        ? "https://wiki.dn42/"
-        : "https://dn42.dev/",
-    routeGraphsUrl:
-      window.location.href.includes(".dn42")
-        ? "https://routegraphs.highdef.dn42/"
-        : "https://routegraphs.highdef.network/",
+    whoisApi: "https://api.iedon.com/dn42/asn/",
+    explorerUrl: window.location.href.includes(".dn42")
+      ? "http://explorer.burble.dn42/?#/"
+      : "https://explorer.burble.com/?#/",
+    homeUrl: window.location.href.includes(".dn42")
+      ? "https://wiki.dn42/"
+      : "https://dn42.dev/",
+    routeGraphsUrl: window.location.href.includes(".dn42")
+      ? "https://routegraphs.highdef.dn42/"
+      : "https://routegraphs.highdef.network/",
     peerFinderUrl: "https://dn42.us/peers/",
     myIpUrl: `${location.protocol}//map.dn42/myip/`,
-    myIpApi: `${location.protocol}//map.dn42/myip/api`
+    myIpApi: `${location.protocol}//map.dn42/myip/api`,
+    rawJsonApiUrl: window.location.href.includes(".dn42")
+      ? "https://map.dn42/map?type=json"
+      : "https://api.iedon.com/dn42/map?type=json",
   },
 };

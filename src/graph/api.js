@@ -32,12 +32,11 @@ export async function getGraphData() {
  * Fetches whois data from the server.
  */
 export async function getWhoisData(asn) {
-  const response = await fetch(constants.dn42.whoisApi, {
-    method: "POST",
+  const response = await fetch(`${constants.dn42.whoisApi}${asn}`, {
     headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ asn })
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    }
   });
 
   if (!response.ok) {

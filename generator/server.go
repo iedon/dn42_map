@@ -151,14 +151,17 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 }
 
 // generateMap generates map data
-func (s *Server) generateMap() error {
+func (s *Server) generateMap() {
+	log.Printf("Map generation started at %s\n", time.Now().UTC().Format(http.TimeFormat))
+
 	ctx := context.Background()
 	start := time.Now()
 
 	// Concurrent download MRT files
 	mrtData, err := downloadMRTFiles(ctx, s.config)
 	if err != nil {
-		return fmt.Errorf("failed to download MRT files: %v", err)
+		log.Printf("failed to download MRT files: %v\n", err)
+		return
 	}
 
 	// Concurrent process MRT data
@@ -172,7 +175,7 @@ func (s *Server) generateMap() error {
 			defer wg.Done()
 			result, err := processor.Process(data)
 			if err != nil {
-				log.Printf("Error processing MRT data: %v", err)
+				log.Printf("Error processing MRT data: %v\n", err)
 				return
 			}
 			results <- result
@@ -204,12 +207,14 @@ func (s *Server) generateMap() error {
 	// Serialize
 	data, err := proto.Marshal(graphPb)
 	if err != nil {
-		return fmt.Errorf("failed to marshal graph: %v", err)
+		log.Printf("failed to marshal graph: %v\n", err)
+		return
 	}
 
 	// Save to file
 	if err := os.WriteFile(s.config.OutputFile, data, 0644); err != nil {
-		return fmt.Errorf("failed to write output file: %v", err)
+		log.Printf("failed to write output file: %v\n", err)
+		return
 	}
 
 	// Update in-memory data
@@ -231,18 +236,17 @@ func (s *Server) generateMap() error {
 		cmd.Stderr = os.Stderr
 
 		if err := cmd.Start(); err != nil {
-			log.Printf("Error starting post generation command: %v", err)
+			log.Printf("Error starting post generation command: %v\n", err)
 		} else {
 			go func() {
 				if err := cmd.Wait(); err != nil {
-					log.Printf("Post generation command exited with error: %v", err)
+					log.Printf("Post generation command exited with error: %v\n", err)
 				}
 			}()
 		}
 	}
 
-	log.Printf("Map generation completed in %v", time.Since(start))
-	return nil
+	log.Printf("Map generation completed in %v\n", time.Since(start))
 }
 
 // checkIfModified checks if the response should be modified based on If-Modified-Since header

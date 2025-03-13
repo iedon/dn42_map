@@ -44,7 +44,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 	setHeaders(w, "text/plain", nil)
-	w.Write([]byte("Map generation started at: " + time.Now().UTC().Format(http.TimeFormat)))
+	w.Write([]byte("Map generation requested at: " + time.Now().UTC().Format(http.TimeFormat)))
 }
 
 // handleMap handles /map requests

@@ -269,26 +269,26 @@ map.draw = () => {
 };
 
 // Dump JSON
-window.dumpJson = () => {
-  try {
-    const { nodes, links } = preprocessDataset(map.rawData, true);
-    const jsonString = JSON.stringify({ nodes, links }, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
+// window.dumpJson = () => {
+//   try {
+//     const { nodes, links } = preprocessDataset(map.rawData, true);
+//     const jsonString = JSON.stringify({ nodes, links }, null, 2);
+//     const blob = new Blob([jsonString], { type: "application/json" });
+//     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.style.display = "none";
-    link.href = url;
-    link.download = `map_dn42_${+new Date()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+//     const link = document.createElement("a");
+//     link.style.display = "none";
+//     link.href = url;
+//     link.download = `map_dn42_${+new Date()}.json`;
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
 
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error(error);
-  }
-};
+//     URL.revokeObjectURL(url);
+//   } catch (error) {
+//     console.error(error);
+//   }
+// };
 
 /**
  * Initializes the map with given data and container ID.

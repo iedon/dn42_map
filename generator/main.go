@@ -58,7 +58,7 @@ func main() {
 	// Load config file
 	config, err := loadConfig(*configFile)
 	if err != nil {
-		log.Panicf("Warning: Failed to load config file: %v", err)
+		log.Fatalf("Warning: Failed to load config file: %v\n", err)
 	}
 
 	// Override with environment variables, higher priority than config file
@@ -82,9 +82,9 @@ func main() {
 		go server.generateMap()
 
 		// Start the HTTP server
-		log.Printf("Starting HTTP server on %s", config.API.ListenAddr)
+		log.Printf("Starting HTTP server on %s\n", config.API.ListenAddr)
 		if err := http.ListenAndServe(config.API.ListenAddr, nil); err != nil {
-			log.Fatalf("Failed to start HTTP server: %v", err)
+			log.Fatalf("Failed to start HTTP server: %v\n", err)
 		}
 	} else {
 		log.Println("API server mode is disabled. Generating map...")

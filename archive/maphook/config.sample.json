@@ -1,0 +1,19 @@
+{
+  "webhook": {
+    "port": "8080",
+    "secret": "your_webhook_secret",
+    "event_type": "page_build",
+    "shell_command": "/data/map_reload.sh"
+  },
+  "mrt": {
+    "url": "https://mrt.collector.dn42/",
+    "check_interval": 60,
+    "ignore_cert_verify": true,
+    "custom_dns_server": "172.23.0.53:53"
+  },
+  "github": {
+    "workflow_api": "https://api.github.com/repos/iedon/dn42_map/actions/workflows/114514/dispatches",
+    "status_file": "/var/run/mapcheck.status",
+    "token": "your_github_token"
+  }
+}

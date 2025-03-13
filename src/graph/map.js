@@ -127,6 +127,11 @@ function preprocessDataset(data, isDump = false) {
       }
     });
     node.routes = parsed;
+
+    node.centrality.index = node.centrality.index || 0;
+    node.centrality.degree = node.centrality.degree || 0;
+    node.centrality.betweenness = node.centrality.betweenness || 0;
+    node.centrality.closeness = node.centrality.closeness || 0;
   });
 
   // Convert links to use actual node object references

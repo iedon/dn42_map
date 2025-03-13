@@ -7,12 +7,16 @@ import (
 
 // Node represents a node in the graph
 type Node struct {
-	ASN         uint32
-	Degree      float64
-	Betweenness float64
-	Closeness   float64
-	Index       uint32
-	Ranking     uint32
+	ASN            uint32
+	Degree         float64
+	InDegree       float64
+	OutDegree      float64
+	Betweenness    float64
+	InBetweenness  float64
+	OutBetweenness float64
+	Closeness      float64
+	Index          uint32
+	Ranking        uint32
 }
 
 // Graph represents the entire graph
@@ -71,9 +75,8 @@ func (g *Graph) calculateDegree() {
 	}
 }
 
-// calculateBetweenness calculates betweenness centrality
+// calculateBetweenness calculates betweenness centrality with direction consideration
 func (g *Graph) calculateBetweenness() {
-	// Use the Floyd-Warshall algorithm to calculate the shortest paths
 	n := len(g.Nodes)
 	dist := make([][]float64, n)
 	next := make([][]uint32, n)
@@ -92,16 +95,15 @@ func (g *Graph) calculateBetweenness() {
 		nodeMap[node.ASN] = i
 	}
 
+	// Initialize adjacency matrix with directed edges
 	for _, link := range g.Links {
 		i := nodeMap[link.Source]
 		j := nodeMap[link.Target]
 		dist[i][j] = 1
-		dist[j][i] = 1
-		next[i][j] = uint32(j) // Store the index of the target node
-		next[j][i] = uint32(i) // Store the index of the target node
+		next[i][j] = uint32(j)
 	}
 
-	// Floyd-Warshall algorithm
+	// Floyd-Warshall algorithm for directed graph
 	for k := range n {
 		for i := range n {
 			for j := range n {
@@ -113,23 +115,55 @@ func (g *Graph) calculateBetweenness() {
 		}
 	}
 
-	// Calculate betweenness centrality
-	betweenness := make(map[uint32]float64)
+	// Calculate in-degree and out-degree
+	for _, link := range g.Links {
+		i := nodeMap[link.Source]
+		j := nodeMap[link.Target]
+		g.Nodes[i].OutDegree++
+		g.Nodes[j].InDegree++
+	}
+
+	// Calculate betweenness centrality with direction consideration
+	inBetweenness := make(map[uint32]float64)
+	outBetweenness := make(map[uint32]float64)
+
 	for s := range n {
 		for t := range n {
 			if s == t {
 				continue
 			}
 			path := reconstructPath(next, uint32(s), uint32(t))
+			if path == nil {
+				continue
+			}
+
+			// Count nodes in the path
 			for _, nodeIdx := range path {
-				betweenness[g.Nodes[nodeIdx].ASN]++
+				if nodeIdx != uint32(s) && nodeIdx != uint32(t) {
+					node := g.Nodes[nodeIdx]
+					// Weight based on the node's role
+					if node.InDegree > node.OutDegree {
+						// Node is more of a receiver
+						inBetweenness[node.ASN]++
+					} else if node.OutDegree > node.InDegree {
+						// Node is more of a forwarder
+						outBetweenness[node.ASN]++
+					} else {
+						// Node is balanced
+						inBetweenness[node.ASN] += 0.5
+						outBetweenness[node.ASN] += 0.5
+					}
+				}
 			}
 		}
 	}
 
 	// Update the betweenness centrality for each node
 	for _, node := range g.Nodes {
-		node.Betweenness = betweenness[node.ASN]
+		node.InBetweenness = inBetweenness[node.ASN]
+		node.OutBetweenness = outBetweenness[node.ASN]
+		// Total betweenness is the sum of both
+		node.Betweenness = node.InBetweenness + node.OutBetweenness
 	}
 }
 

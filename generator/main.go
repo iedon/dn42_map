@@ -71,6 +71,7 @@ func main() {
 	server := NewServer(config)
 
 	// Register routes
+	http.HandleFunc("/asn/", server.handleASN)
 	http.HandleFunc("/generate", server.handleGenerate)
 	http.HandleFunc("/map", server.handleMap)
 	http.HandleFunc("/ranking", server.handleRanking)

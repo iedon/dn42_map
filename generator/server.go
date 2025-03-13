@@ -4,13 +4,16 @@ import (
 	"compress/bzip2"
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
-	"sort"
+	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -22,10 +25,38 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Server HTTP server
+// JSONNode represents a node in JSON format
+type JSONNode struct {
+	ASN        uint32   `json:"asn"`
+	Desc       string   `json:"desc"`
+	Routes     []string `json:"routes"`
+	Centrality struct {
+		Degree      float64 `json:"degree"`
+		Betweenness float64 `json:"betweenness"`
+		Closeness   float64 `json:"closeness"`
+		Index       uint32  `json:"index"`
+		Ranking     uint32  `json:"ranking"`
+	} `json:"centrality"`
+	Whois string `json:"whois,omitempty"`
+}
+
+// JSONGraph represents the entire graph in JSON format
+type JSONGraph struct {
+	Metadata struct {
+		Vendor        string `json:"vendor"`
+		GeneratedTime uint64 `json:"generated_timestamp"`
+		DataTime      uint64 `json:"data_timestamp"`
+	} `json:"metadata"`
+	Nodes []JSONNode `json:"nodes"`
+	Links []struct {
+		Source uint32 `json:"source"`
+		Target uint32 `json:"target"`
+	} `json:"links"`
+}
+
+// Server
 type Server struct {
 	config       *Config
-	graphData    []byte
 	graph        *pb.Graph
 	graphMutex   sync.RWMutex
 	lastModified time.Time
@@ -182,7 +213,6 @@ func (s *Server) generateMap() error {
 	// Update in-memory data
 	s.graphMutex.Lock()
 	s.graph = graphPb
-	s.graphData = data
 	s.lastModified = time.Now()
 	s.graphMutex.Unlock()
 
@@ -190,98 +220,143 @@ func (s *Server) generateMap() error {
 	return nil
 }
 
-// handleGenerate handles /generate requests
-func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
-	// Validate authentication token
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+// setHeaders sets HTTP headers for responses
+func setHeaders(w http.ResponseWriter, contentType string, lastModified *time.Time) {
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Max-Age", "3600")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+	if lastModified != nil {
+		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
 	}
-
-	token := authHeader[7:]
-	if token != s.config.API.AuthToken {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Generate map
-	go s.generateMap()
-	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleMap handles /map requests
-func (s *Server) handleMap(w http.ResponseWriter, r *http.Request) {
-	s.graphMutex.RLock()
-	defer s.graphMutex.RUnlock()
-
-	if s.graphData == nil {
-		http.Error(w, "Map data not available", http.StatusServiceUnavailable)
-		return
-	}
-
-	// Check If-Modified-Since
+// checkIfModified checks if the response should be modified based on If-Modified-Since header
+func checkIfModified(r *http.Request, lastModified time.Time) bool {
 	if ifModifiedSince := r.Header.Get("If-Modified-Since"); ifModifiedSince != "" {
 		ifModifiedTime, err := time.Parse(http.TimeFormat, ifModifiedSince)
-		if err == nil && !s.lastModified.After(ifModifiedTime) {
-			w.WriteHeader(http.StatusNotModified)
-			return
+		if err == nil && !lastModified.After(ifModifiedTime) {
+			return false
 		}
 	}
-
-	outputType := r.URL.Query().Get("type")
-
-	// Set response headers
-	if outputType == "json" {
-		w.Header().Set("Content-Type", "application/json")
-	} else {
-		w.Header().Set("Content-Type", "application/x-protobuf")
-		w.Header().Set("Content-Disposition", "attachment; filename=\"map.bin\"")
-	}
-
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Last-Modified", s.lastModified.UTC().Format(http.TimeFormat))
-
-	// Send data
-	if outputType == "json" {
-		json.NewEncoder(w).Encode(s.graph)
-	} else {
-		w.Write(s.graphData)
-	}
+	return true
 }
 
-// handleRanking handles /ranking requests
-func (s *Server) handleRanking(w http.ResponseWriter, r *http.Request) {
-	s.graphMutex.RLock()
-	defer s.graphMutex.RUnlock()
-
-	if s.graphData == nil {
-		http.Error(w, "Map data not available", http.StatusServiceUnavailable)
-		return
+// sendJSONResponse sends the graph data as JSON
+func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
+	jsonGraph := JSONGraph{
+		Metadata: struct {
+			Vendor        string `json:"vendor"`
+			GeneratedTime uint64 `json:"generated_timestamp"`
+			DataTime      uint64 `json:"data_timestamp"`
+		}{
+			Vendor:        s.graph.Metadata.Vendor,
+			GeneratedTime: s.graph.Metadata.GeneratedTimestamp,
+			DataTime:      s.graph.Metadata.DataTimestamp,
+		},
+		Nodes: make([]JSONNode, len(s.graph.Nodes)),
+		Links: make([]struct {
+			Source uint32 `json:"source"`
+			Target uint32 `json:"target"`
+		}, len(s.graph.Links)),
 	}
 
-	//  Create a copy of nodes to avoid polluting original data
-	nodes := make([]*pb.Node, len(s.graph.Nodes))
-	copy(nodes, s.graph.Nodes)
-
-	// Sort by Centrality.Ranking
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].Centrality.Ranking < nodes[j].Centrality.Ranking
-	})
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Last-Modified", s.lastModified.UTC().Format(http.TimeFormat))
-
-	fmt.Fprintf(w, "MAP.DN42 Global Rank\n")
-	fmt.Fprintf(w, "Last update: %s\n", s.lastModified.UTC().Format(http.TimeFormat))
-	fmt.Fprintf(w, "Rank   ASN         Desc                            Index\n")
-	for _, node := range nodes {
-		fmt.Fprintf(w, "%-5d  %-10d  %-30s  %d\n",
-			node.Centrality.Ranking, node.Asn, node.Desc, node.Centrality.Index)
+	// Pre-allocate slices for better performance
+	for i := range s.graph.Nodes {
+		jsonGraph.Nodes[i] = s.convertNodeToJSON(s.graph.Nodes[i], false)
 	}
+
+	for i := range s.graph.Links {
+		jsonGraph.Links[i].Source = s.graph.Links[i].Source
+		jsonGraph.Links[i].Target = s.graph.Links[i].Target
+	}
+
+	return json.NewEncoder(w).Encode(jsonGraph)
+}
+
+// sendProtobufResponse sends the graph data as protobuf
+func (s *Server) sendProtobufResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Disposition", "attachment; filename=\"map.bin\"")
+	data, err := proto.Marshal(s.graph)
+	if err != nil {
+		return fmt.Errorf("unable to marshal map data: %w", err)
+	}
+	_, err = w.Write(data)
+	return err
+}
+
+// readWhois reads the whois information for a given ASN
+func readWhois(registryPath string, asn uint32) string {
+	whoisPath := filepath.Join(registryPath, "data", "aut-num", fmt.Sprintf("AS%d", asn))
+	data, err := os.ReadFile(whoisPath)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// convertNodeToJSON converts a protobuf Node to JSONNode
+func (s *Server) convertNodeToJSON(node *pb.Node, includeWhois bool) JSONNode {
+	jsonNode := JSONNode{
+		ASN:    node.Asn,
+		Desc:   node.Desc,
+		Routes: make([]string, len(node.Routes)),
+	}
+
+	for j, route := range node.Routes {
+		var ipStr string
+		switch ip := route.Ip.(type) {
+		case *pb.Route_Ipv4:
+			ipStr = fmt.Sprintf("%d.%d.%d.%d/%d",
+				(ip.Ipv4>>24)&0xFF,
+				(ip.Ipv4>>16)&0xFF,
+				(ip.Ipv4>>8)&0xFF,
+				ip.Ipv4&0xFF,
+				route.Length)
+		case *pb.Route_Ipv6:
+			ipv6 := make(net.IP, 16)
+			binary.BigEndian.PutUint32(ipv6[0:4], ip.Ipv6.HighH32)
+			binary.BigEndian.PutUint32(ipv6[4:8], ip.Ipv6.HighL32)
+			binary.BigEndian.PutUint32(ipv6[8:12], ip.Ipv6.LowH32)
+			binary.BigEndian.PutUint32(ipv6[12:16], ip.Ipv6.LowL32)
+			ipStr = fmt.Sprintf("%s/%d", ipv6.String(), route.Length)
+		}
+		jsonNode.Routes[j] = ipStr
+	}
+
+	jsonNode.Centrality.Degree = node.Centrality.Degree
+	jsonNode.Centrality.Betweenness = node.Centrality.Betweenness
+	jsonNode.Centrality.Closeness = node.Centrality.Closeness
+	jsonNode.Centrality.Index = node.Centrality.Index
+	jsonNode.Centrality.Ranking = node.Centrality.Ranking
+
+	if includeWhois {
+		jsonNode.Whois = readWhois(s.config.RegistryPath, node.Asn)
+	}
+
+	return jsonNode
+}
+
+// parseASNFromURL extracts and parses ASN from URL
+func (s *Server) parseASNFromURL(path string) (uint32, error) {
+	asnStr := path[len("/asn/"):]
+	asn, err := strconv.ParseUint(asnStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ASN format")
+	}
+	return uint32(asn), nil
+}
+
+// findNodeByASN finds a node by ASN
+func (s *Server) findNodeByASN(asn uint32) *pb.Node {
+	for _, node := range s.graph.Nodes {
+		if node.Asn == asn {
+			return node
+		}
+	}
+	return nil
 }

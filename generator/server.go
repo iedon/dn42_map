@@ -78,12 +78,33 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 	errCh := make(chan error, len(urls))
 	dataCh := make(chan []byte, len(urls))
 
-	// Create a custom HTTP client
+	// Create a custom HTTP client with custom DNS if specified
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: config.MRTCollector.InsecureSkipVerify,
 		},
 	}
+
+	// Set up custom DNS resolver if specified
+	if config.MRTCollector.CustomDNSServer != "" {
+		tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+			resolver := &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{
+						Timeout: time.Millisecond * time.Duration(10000),
+					}
+					return d.DialContext(ctx, network, config.MRTCollector.CustomDNSServer)
+				},
+			}
+			dialer := &net.Dialer{
+				Timeout:  10 * time.Second,
+				Resolver: resolver,
+			}
+			return dialer.DialContext(ctx, network, address)
+		}
+	}
+
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   5 * time.Minute,

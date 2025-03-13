@@ -25,6 +25,7 @@ type Collector struct {
 	Username           string `json:"username"`
 	Password           string `json:"password"`
 	InsecureSkipVerify bool   `json:"insecure_skip_verify"`
+	CustomDNSServer    string `json:"custom_dns_server"`
 }
 
 // API service configuration

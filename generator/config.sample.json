@@ -7,7 +7,8 @@
         "master6_url": "https://mrt.iedon.net/master6_latest.mrt.bz2",
         "username": "CanAlsoSpecifyInEnv",
         "password": "CanAlsoSpecifyInEnv",
-        "insecure_skip_verify": true
+        "insecure_skip_verify": true,
+        "custom_dns_server": ""
     },
     "api": {
         "enabled": false,

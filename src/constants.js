@@ -34,7 +34,9 @@ export const constants = {
   },
   dn42: {
     accessingFromDn42: window.location.href.includes(".dn42"),
-    whoisApi: "https://api.iedon.com/dn42/asn/",
+    whoisApi: window.location.href.includes(".dn42")
+      ? "https://map.dn42/asn/"
+      : "https://api.iedon.com/dn42/asn/",
     explorerUrl: window.location.href.includes(".dn42")
       ? "http://explorer.burble.dn42/?#/"
       : "https://explorer.burble.com/?#/",

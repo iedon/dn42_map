@@ -7,12 +7,7 @@ import { parse } from "protobufjs";
  * Fetches graph data from the server.
  */
 export async function getGraphData() {
-  const response = await fetch("map.bin", {
-    headers: {
-      "Cache-Control": "no-cache",
-      "Pragma": "no-cache"
-    }
-  });
+  const response = await fetch("map.bin");
 
   if (!response.ok) throw new Error("Failed to fetch graph data.");
 

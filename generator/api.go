@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 
 	pb "github.com/iedon/dn42_map_go/proto"
@@ -16,12 +17,31 @@ func setHeaders(w http.ResponseWriter, contentType string, lastModified *time.Ti
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Max-Age", "600")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Cache-Control, Pragma")
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+	w.Header().Set("Cache-Control", "no-store, must-revalidate")
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Pragma", "no-cache")
 	if lastModified != nil {
 		w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
 	}
+}
+
+// findNodeByASN finds a node by ASN
+func (s *Server) findNodeByASN(asn uint32) *pb.Node {
+	for _, node := range s.graph.Nodes {
+		if node.Asn == asn {
+			return node
+		}
+	}
+	return nil
+}
+
+// parseASNFromURL extracts and parses ASN from URL
+func (s *Server) parseASNFromURL(path string) (uint32, error) {
+	asnStr := path[len("/asn/"):]
+	asn, err := strconv.ParseUint(asnStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid ASN format")
+	}
+	return uint32(asn), nil
 }
 
 // handleGenerate handles /generate requests

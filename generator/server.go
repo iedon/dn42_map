@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"compress/bzip2"
 	"context"
 	"crypto/tls"
@@ -15,7 +16,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 
@@ -138,15 +138,32 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 				return
 			}
 
-			// Decompress using bzip2
+			// Decompress using bzip2 with streaming
 			bzReader := bzip2.NewReader(resp.Body)
-			data, err := io.ReadAll(bzReader)
-			if err != nil {
-				errCh <- fmt.Errorf("failed to decompress %s: %v", url, err)
-				return
+
+			// Use a buffer to read data in chunks
+			var buffer bytes.Buffer
+			chunk := make([]byte, 32*1024) // 32KB chunks
+
+			for {
+				n, err := bzReader.Read(chunk)
+				if n > 0 {
+					buffer.Write(chunk[:n])
+				}
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					errCh <- fmt.Errorf("failed to decompress %s: %v", url, err)
+					return
+				}
 			}
 
-			dataCh <- data
+			// Send the decompressed data
+			dataCh <- buffer.Bytes()
+
+			// Clear the buffer to help GC
+			buffer.Reset()
 		}(url)
 	}
 
@@ -283,34 +300,77 @@ func checkIfModified(r *http.Request, lastModified time.Time) bool {
 
 // sendJSONResponse sends the graph data as JSON
 func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
-	jsonGraph := JSONGraph{
-		Metadata: struct {
-			Vendor        string `json:"vendor"`
-			GeneratedTime uint64 `json:"generated_timestamp"`
-			DataTime      uint64 `json:"data_timestamp"`
-		}{
-			Vendor:        s.graph.Metadata.Vendor,
-			GeneratedTime: s.graph.Metadata.GeneratedTimestamp,
-			DataTime:      s.graph.Metadata.DataTimestamp,
-		},
-		Nodes: make([]JSONNode, len(s.graph.Nodes)),
-		Links: make([]struct {
+	// Start JSON encoding
+	encoder := json.NewEncoder(w)
+
+	// Write opening brace
+	if _, err := w.Write([]byte("{")); err != nil {
+		return err
+	}
+
+	// Write metadata
+	if _, err := w.Write([]byte(`"metadata":{`)); err != nil {
+		return err
+	}
+
+	if _, err := w.Write(fmt.Appendf(nil, `"vendor":"%s","generated_timestamp":%d,"data_timestamp":%d},`,
+		s.graph.Metadata.Vendor,
+		s.graph.Metadata.GeneratedTimestamp,
+		s.graph.Metadata.DataTimestamp)); err != nil {
+		return err
+	}
+
+	// Start nodes array
+	if _, err := w.Write([]byte(`"nodes":[`)); err != nil {
+		return err
+	}
+
+	// Write nodes one by one to avoid building a large array in memory
+	for i, node := range s.graph.Nodes {
+		if i > 0 {
+			if _, err := w.Write([]byte(",")); err != nil {
+				return err
+			}
+		}
+
+		jsonNode := s.convertNodeToJSON(node, false)
+		if err := encoder.Encode(jsonNode); err != nil {
+			return err
+		}
+	}
+
+	// End nodes array and start links array
+	if _, err := w.Write([]byte(`],"links":[`)); err != nil {
+		return err
+	}
+
+	// Write links one by one
+	for i, link := range s.graph.Links {
+		if i > 0 {
+			if _, err := w.Write([]byte(",")); err != nil {
+				return err
+			}
+		}
+
+		linkJSON := struct {
 			Source uint32 `json:"source"`
 			Target uint32 `json:"target"`
-		}, len(s.graph.Links)),
+		}{
+			Source: link.Source,
+			Target: link.Target,
+		}
+
+		if err := encoder.Encode(linkJSON); err != nil {
+			return err
+		}
 	}
 
-	// Pre-allocate slices for better performance
-	for i := range s.graph.Nodes {
-		jsonGraph.Nodes[i] = s.convertNodeToJSON(s.graph.Nodes[i], false)
+	// End links array and close the JSON object
+	if _, err := w.Write([]byte("]}")); err != nil {
+		return err
 	}
 
-	for i := range s.graph.Links {
-		jsonGraph.Links[i].Source = s.graph.Links[i].Source
-		jsonGraph.Links[i].Target = s.graph.Links[i].Target
-	}
-
-	return json.NewEncoder(w).Encode(jsonGraph)
+	return nil
 }
 
 // sendProtobufResponse sends the graph data as protobuf
@@ -374,24 +434,4 @@ func (s *Server) convertNodeToJSON(node *pb.Node, includeWhois bool) JSONNode {
 	}
 
 	return jsonNode
-}
-
-// parseASNFromURL extracts and parses ASN from URL
-func (s *Server) parseASNFromURL(path string) (uint32, error) {
-	asnStr := path[len("/asn/"):]
-	asn, err := strconv.ParseUint(asnStr, 10, 32)
-	if err != nil {
-		return 0, fmt.Errorf("invalid ASN format")
-	}
-	return uint32(asn), nil
-}
-
-// findNodeByASN finds a node by ASN
-func (s *Server) findNodeByASN(asn uint32) *pb.Node {
-	for _, node := range s.graph.Nodes {
-		if node.Asn == asn {
-			return node
-		}
-	}
-	return nil
 }

@@ -26,6 +26,8 @@ type Graph struct {
 		Source uint32
 		Target uint32
 	}
+	// Adjacency list representation
+	adjList map[uint32][]uint32
 }
 
 // NewGraph creates a new graph
@@ -36,12 +38,14 @@ func NewGraph() *Graph {
 			Source uint32
 			Target uint32
 		}, 0),
+		adjList: make(map[uint32][]uint32),
 	}
 }
 
 // AddNode adds a node
 func (g *Graph) AddNode(asn uint32) {
 	g.Nodes = append(g.Nodes, &Node{ASN: asn})
+	g.adjList[asn] = make([]uint32, 0)
 }
 
 // AddLink adds a link
@@ -50,169 +54,158 @@ func (g *Graph) AddLink(source, target uint32) {
 		Source uint32
 		Target uint32
 	}{source, target})
+	// For directed graph, only add the outgoing edge
+	g.adjList[source] = append(g.adjList[source], target)
+	// Don't add the reverse edge for directed graph
 }
 
 // CalculateCentrality calculates all centrality metrics
 func (g *Graph) CalculateCentrality() {
 	g.calculateDegree()
-	g.calculateBetweenness()
-	g.calculateCloseness()
+	g.calculateBetweennessAndCloseness()
 	g.calculateIndex()
 }
 
 // calculateDegree calculates degree centrality
 func (g *Graph) calculateDegree() {
 	// Count the number of outgoing and incoming links for each node
-	degreeMap := make(map[uint32]float64)
+	inDegreeMap := make(map[uint32]float64)
+	outDegreeMap := make(map[uint32]float64)
+
 	for _, link := range g.Links {
-		degreeMap[link.Source]++
-		degreeMap[link.Target]++
+		outDegreeMap[link.Source]++
+		inDegreeMap[link.Target]++
 	}
 
 	// Update the degree centrality for each node
 	for _, node := range g.Nodes {
-		node.Degree = degreeMap[node.ASN]
+		node.InDegree = inDegreeMap[node.ASN]
+		node.OutDegree = outDegreeMap[node.ASN]
+		node.Degree = node.InDegree + node.OutDegree
 	}
 }
 
-// calculateBetweenness calculates betweenness centrality with direction consideration
-func (g *Graph) calculateBetweenness() {
-	n := len(g.Nodes)
-	dist := make([][]float64, n)
-	next := make([][]uint32, n)
-	for i := range dist {
-		dist[i] = make([]float64, n)
-		next[i] = make([]uint32, n)
-		for j := range dist[i] {
-			dist[i][j] = math.Inf(1)
-		}
-		dist[i][i] = 0
-	}
+// calculateBetweennessAndCloseness calculates betweenness and closeness centrality
+// based on the Brandes algorithm (similar to the Python implementation)
+func (g *Graph) calculateBetweennessAndCloseness() {
+	// Create a bidirectional graph for centrality calculations
+	// This is similar to the fullasmap in the Python code
+	bidirectionalGraph := make(map[uint32]map[uint32]struct{})
 
-	// Build the adjacency matrix
-	nodeMap := make(map[uint32]int)
-	for i, node := range g.Nodes {
-		nodeMap[node.ASN] = i
-	}
-
-	// Initialize adjacency matrix with directed edges
-	for _, link := range g.Links {
-		i := nodeMap[link.Source]
-		j := nodeMap[link.Target]
-		dist[i][j] = 1
-		next[i][j] = uint32(j)
-	}
-
-	// Floyd-Warshall algorithm for directed graph
-	for k := range n {
-		for i := range n {
-			for j := range n {
-				if dist[i][k]+dist[k][j] < dist[i][j] {
-					dist[i][j] = dist[i][k] + dist[k][j]
-					next[i][j] = next[i][k]
-				}
-			}
-		}
-	}
-
-	// Calculate in-degree and out-degree
-	for _, link := range g.Links {
-		i := nodeMap[link.Source]
-		j := nodeMap[link.Target]
-		g.Nodes[i].OutDegree++
-		g.Nodes[j].InDegree++
-	}
-
-	// Calculate betweenness centrality with direction consideration
-	inBetweenness := make(map[uint32]float64)
-	outBetweenness := make(map[uint32]float64)
-
-	for s := range n {
-		for t := range n {
-			if s == t {
-				continue
-			}
-			path := reconstructPath(next, uint32(s), uint32(t))
-			if path == nil {
-				continue
-			}
-
-			// Count nodes in the path
-			for _, nodeIdx := range path {
-				if nodeIdx != uint32(s) && nodeIdx != uint32(t) {
-					node := g.Nodes[nodeIdx]
-					// Weight based on the node's role
-					if node.InDegree > node.OutDegree {
-						// Node is more of a receiver
-						inBetweenness[node.ASN]++
-					} else if node.OutDegree > node.InDegree {
-						// Node is more of a forwarder
-						outBetweenness[node.ASN]++
-					} else {
-						// Node is balanced
-						inBetweenness[node.ASN] += 0.5
-						outBetweenness[node.ASN] += 0.5
-					}
-				}
-			}
-		}
-	}
-
-	// Update the betweenness centrality for each node
+	// Initialize the bidirectional graph
 	for _, node := range g.Nodes {
-		node.InBetweenness = inBetweenness[node.ASN]
-		node.OutBetweenness = outBetweenness[node.ASN]
-		// Total betweenness is the sum of both
-		node.Betweenness = node.InBetweenness + node.OutBetweenness
-	}
-}
-
-// calculateCloseness calculates closeness centrality
-func (g *Graph) calculateCloseness() {
-	// Use the Floyd-Warshall algorithm results to calculate closeness centrality
-	n := len(g.Nodes)
-	dist := make([][]float64, n)
-	for i := range dist {
-		dist[i] = make([]float64, n)
-		for j := range dist[i] {
-			dist[i][j] = math.Inf(1)
-		}
-		dist[i][i] = 0
+		bidirectionalGraph[node.ASN] = make(map[uint32]struct{})
 	}
 
-	// Build the adjacency matrix
-	nodeMap := make(map[uint32]int)
-	for i, node := range g.Nodes {
-		nodeMap[node.ASN] = i
-	}
-
+	// Fill the bidirectional graph
 	for _, link := range g.Links {
-		i := nodeMap[link.Source]
-		j := nodeMap[link.Target]
-		dist[i][j] = 1
-		dist[j][i] = 1
+		bidirectionalGraph[link.Source][link.Target] = struct{}{}
+		bidirectionalGraph[link.Target][link.Source] = struct{}{}
 	}
 
-	// Floyd-Warshall algorithm
-	for k := range n {
-		for i := range n {
-			for j := range n {
-				if dist[i][k]+dist[k][j] < dist[i][j] {
-					dist[i][j] = dist[i][k] + dist[k][j]
+	// Initialize betweenness values
+	betweenness := make(map[uint32]float64)
+	for _, node := range g.Nodes {
+		betweenness[node.ASN] = 0.0
+	}
+
+	// Initialize closeness values and all distances
+	allDistances := make(map[uint32]map[uint32]float64)
+
+	// For each node as a source
+	for _, sourceNode := range g.Nodes {
+		source := sourceNode.ASN
+
+		// Initialize distances for this source
+		distances := make(map[uint32]float64)
+		allDistances[source] = distances
+
+		// Initialize data structures for Brandes algorithm
+		pathVia := make(map[uint32][]uint32)
+		sigma := make(map[uint32]int)
+		delta := make(map[uint32]float64)
+		searchOrder := make([]uint32, 0)
+
+		// Initialize for all nodes
+		for _, node := range g.Nodes {
+			asn := node.ASN
+			distances[asn] = math.Inf(1)
+			pathVia[asn] = make([]uint32, 0)
+			sigma[asn] = 0
+			delta[asn] = 0.0
+		}
+
+		// BFS initialization
+		distances[source] = 0
+		sigma[source] = 1
+		queue := []uint32{source}
+
+		// BFS to find shortest paths
+		for len(queue) > 0 {
+			// Dequeue
+			current := queue[0]
+			queue = queue[1:]
+			searchOrder = append(searchOrder, current)
+
+			// For each neighbor
+			for neighbor := range bidirectionalGraph[current] {
+				// If this is the first time we see this node
+				if math.IsInf(distances[neighbor], 1) {
+					distances[neighbor] = distances[current] + 1
+					queue = append(queue, neighbor)
+				}
+
+				// If this is a shortest path to neighbor
+				if distances[neighbor] == distances[current]+1 {
+					sigma[neighbor] += sigma[current]
+					pathVia[neighbor] = append(pathVia[neighbor], current)
 				}
 			}
 		}
+
+		// Backward pass to accumulate betweenness
+		for i := len(searchOrder) - 1; i >= 0; i-- {
+			current := searchOrder[i]
+			coeff := (1.0 + delta[current]) / float64(sigma[current])
+
+			for _, upstream := range pathVia[current] {
+				delta[upstream] += float64(sigma[upstream]) * coeff
+			}
+
+			if current != source {
+				betweenness[current] += delta[current]
+			}
+		}
 	}
+
+	// Scale betweenness values
+	n := float64(len(g.Nodes))
+	scale := 1.0 / ((n - 1) * (n - 2))
 
 	// Calculate closeness centrality
-	for i, node := range g.Nodes {
+	closeness := make(map[uint32]float64)
+	for source, distances := range allDistances {
 		sum := 0.0
-		for j := range n {
-			if i != j && dist[i][j] != math.Inf(1) {
-				sum += 1.0 / dist[i][j]
+		count := 0
+
+		for target, distance := range distances {
+			if source != target && !math.IsInf(distance, 1) {
+				sum += distance
+				count++
 			}
 		}
-		node.Closeness = sum / float64(n-1)
+
+		if count > 0 {
+			closeness[source] = float64(count) / sum
+		} else {
+			closeness[source] = 0.0
+		}
+	}
+
+	// Update node values
+	for _, node := range g.Nodes {
+		node.Betweenness = betweenness[node.ASN] * scale
+		node.Closeness = closeness[node.ASN]
 	}
 }
 
@@ -262,28 +255,6 @@ func (g *Graph) calculateIndex() {
 	for i, node := range g.Nodes {
 		node.Ranking = uint32(i + 1)
 	}
-}
-
-// reconstructPath reconstructs the shortest path from s to t
-func reconstructPath(next [][]uint32, s, t uint32) []uint32 {
-	// s and t are the indices of nodes in g.Nodes, not ASNs
-	if s >= uint32(len(next)) || t >= uint32(len(next)) {
-		return nil
-	}
-	if next[s][t] == 0 {
-		return nil
-	}
-
-	path := []uint32{s}
-	current := s
-	for current != t {
-		current = next[current][t]
-		if current == 0 {
-			break
-		}
-		path = append(path, current)
-	}
-	return path
 }
 
 // GetNode gets the node for a given ASN

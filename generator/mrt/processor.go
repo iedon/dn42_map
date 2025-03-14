@@ -77,6 +77,9 @@ func (p *Processor) Process(data []byte) (*Result, error) {
 				Timestamp: uint64(timestamp),
 			}
 		}
+
+		// Help GC by clearing the body after processing
+		body = nil
 	}
 
 	return result, nil
@@ -128,12 +131,14 @@ func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result
 	var ipStr string
 	if subType == 2 || subType == 8 { // IPv4
 		if prefixBytes < 4 {
+			// Extend the slice in-place instead of creating a new one
 			prefix = append(prefix, make([]byte, 4-prefixBytes)...)
 		}
 		ip := net.IPv4(prefix[0], prefix[1], prefix[2], prefix[3])
 		ipStr = ip.String()
 	} else { // IPv6 (type 4, 10)
 		if prefixBytes < 16 {
+			// Extend the slice in-place
 			prefix = append(prefix, make([]byte, 16-prefixBytes)...)
 		}
 		ip := net.IP(prefix)
@@ -252,6 +257,9 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 			if len(asPath) > 0 {
 				lastAS = asPath[len(asPath)-1]
 			}
+
+			// Help GC
+			asPathData = nil
 		} else {
 			// Skip other attributes
 			if _, err := attrReader.Seek(int64(length), 1); err != nil {
@@ -291,8 +299,10 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 			}
 		}
 
+		// Check for duplicates
+		routes := result.Advertises[lastAS]
 		isDuplicate := false
-		for _, r := range result.Advertises[lastAS] {
+		for _, r := range routes {
 			if r.Length == route.Length && r.IPType == route.IPType && r.IPValue == route.IPValue {
 				isDuplicate = true
 				break
@@ -305,6 +315,9 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 		}
 		p.Unlock()
 	}
+
+	// Help GC
+	attributes = nil
 
 	return nil
 }
@@ -321,7 +334,10 @@ func MergeResults(results chan *Result) *Result {
 			continue
 		}
 
+		// Append AS paths
 		merged.ASPaths = append(merged.ASPaths, result.ASPaths...)
+
+		// Merge advertised routes
 		for asn, routes := range result.Advertises {
 			merged.Advertises[asn] = append(merged.Advertises[asn], routes...)
 		}
@@ -329,6 +345,10 @@ func MergeResults(results chan *Result) *Result {
 		if merged.Metadata == nil && result.Metadata != nil {
 			merged.Metadata = result.Metadata
 		}
+
+		// Help GC by clearing the processed result
+		result.ASPaths = nil
+		result.Advertises = nil
 	}
 
 	return merged

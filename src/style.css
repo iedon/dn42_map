@@ -243,6 +243,7 @@ button:hover {
 .whois .remarks {
   overflow-x: scroll;
   overflow-y: hidden;
+  white-space: nowrap;
 }
 
 .whois .remarks p {

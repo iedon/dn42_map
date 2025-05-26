@@ -27,15 +27,19 @@ export async function showSidebar(node) {
   // Showing ranking
   if (!node) {
     document.getElementById("sidebar-title").innerText = "Ranking";
-    sidebarContent.innerHTML = `<div class="whois"><table><thead><tr><th class="key rank">Rank</th><th class="key asn">ASN</th><th class="key name">Name</th><th class="key index">Index</th></tr></thead><tbody>${map.nodes.sort((a, b) => a.centrality.ranking - b.centrality.ranking).map((node, i) => `<tr ${onclick(node.asn)}><td class="rank">${i + 1}</td><td class="asn">${node.asn}</td><td class="name">${node.label || "-"}</td><td class="index">${node.centrality.index}</td></tr>`).join("")}</tbody></table></div>`;
+    sidebarContent.innerHTML = `<div class="whois"><table class="sortable"><thead><tr><th class="key rank" onclick="javascript:window.sortTableByColumn(0,'number')">Rank</th><th class="key asn" onclick="javascript:window.sortTableByColumn(1,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(2)">Name</th><th class="key index" onclick="javascript:window.sortTableByColumn(3,'number')">Index</th></tr></thead><tbody>${map.nodes.sort((a, b) => a.centrality.ranking - b.centrality.ranking).map((node, i) => `<tr ${onclick(node.asn)}><td class="rank">${i + 1}</td><td class="asn">${node.asn}</td><td class="name">${node.label || "-"}</td><td class="index">${node.centrality.index}</td></tr>`).join("")}</tbody></table></div>`;
     sidebar.style.left = "0";
     sidebar.scrollTop = 0;
+
+    currentSortColumn = -1;
+    window.sortTableByColumn(0, "number"); // Sort by rank initially
     return;
   }
 
   document.getElementById("sidebar-title").innerText = node.desc;
-  const routes = `<p class="emphasized">Routes (${node.routes.length})</p><ul>${node.routes.map(route =>`<li><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>${route}</a></li>`).join("")}</ul>`;
-  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table><thead><tr><th class="key asn">ASN</th><th class="key name">Name</th><th class="key to">To</th><th class="key from">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✅" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✅" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  const routes = `<p class="emphasized">Routes (${node.routes.length})</p><div class="whois"><table><tbody>${node.routes.map(route =>`<tr><td class="center">${route}</td><td class="right"><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>Registry</a>&nbsp;&nbsp;<a href="${constants.dn42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${constants.dn42.routeGraphInitiateAsn}" target="_blank"}>Graph</a>&nbsp;&nbsp;<a href="${constants.dn42.queryRoutesUrl}${route}" target="_blank"}>Show</a></td></tr>`).join("")}</tbody></table></div>`;
+
+  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table class="sortable"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✅" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✅" : ""}</td></tr>`).join("")}</tbody></table></div>`;
 
   const renderCentralityCard = () => `<div class="centrality"><div class="param"><div>Betweenness <strong>${node.centrality.betweenness.toFixed(5)}</strong></div><div>Closeness <strong>${node.centrality.closeness.toFixed(5)}</strong></div><div>Degree <strong>${node.centrality.degree}</strong></div></div><div class="index"><span>Map.dn42 Index</span><strong>${node.centrality.index}</strong></div><div class="rank"><span>Rank</span><strong># ${node.centrality.ranking}</strong></div></div>`;
 
@@ -91,9 +95,49 @@ export async function showSidebar(node) {
     sidebarContent.innerHTML = cache;
     sidebar.scrollTop = 0;
   }
+  currentSortColumn = -1;
+  window.sortTableByColumn(0, "number"); // Sort by ASN initially
 }
 
 window.toggleRanking = showSidebar;
+
+let currentSortColumn = -1;
+let sortAsc = true;
+window.sortTableByColumn = (colIndex, colType="string") => {
+  const thead = document.querySelector("table.sortable thead");
+  const tbody = document.querySelector("table.sortable tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const headers = thead.querySelectorAll("th");
+
+  // Remove previous sort indicators
+  headers.forEach(th => th.classList.remove("sort-asc", "sort-desc"));
+
+  // Toggle direction if same column; otherwise reset
+  if (currentSortColumn === colIndex) {
+    sortAsc = !sortAsc;
+  } else {
+    currentSortColumn = colIndex;
+    sortAsc = true;
+  }
+
+  // Add new sort class
+  headers[colIndex].classList.add(sortAsc ? "sort-asc" : "sort-desc");
+
+  // Sort rows
+  rows.sort((a, b) => {
+    const aText = a.cells[colIndex].textContent.trim();
+    const bText = b.cells[colIndex].textContent.trim();
+
+    if (colType === "number") {
+      return (Number(aText) - Number(bText)) * (sortAsc ? 1 : -1);
+    }
+
+    return aText.localeCompare(bText) * (sortAsc ? 1 : -1);
+  });
+
+  // Re-append sorted rows
+  rows.forEach(row => tbody.appendChild(row));
+};
 
 export function closeSideBar() {
   showingSideBar = false;
@@ -102,12 +146,13 @@ export function closeSideBar() {
 
 export function showMetadata(mrtDumpDate) {
   document.getElementById("metadata").innerHTML =
-  `<a href="${constants.dn42.homeUrl}" target="_blank">DN42 Home</a> | ` +
+  `<a href="${constants.dn42.homeUrl}" target="_blank">DN42</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer Finder</a> | ` +
-  `<a href="${constants.dn42.routeGraphsUrl}" target="_blank">Routegraphs</a> | ` +
+  `<a href="${constants.dn42.routeGraphsUrl}" target="_blank">Routegraph</a> | ` +
+  `<a href="${constants.dn42.toolboxUrl}" target="_blank">Toolbox</a> | ` +
   // `<a onclick="javascript:window.dumpJson()">Dump</a> | ` +
-  `<a href="${constants.dn42.rawJsonApiUrl}" target="_blank">JSON</a> | ` +
-  `<a onclick="javascript:window.toggleRanking()">Ranking</a> | ` +
+  `<a href="${constants.dn42.rawJsonApiUrl}" target="_blank">API</a> | ` +
+  `<a onclick="javascript:window.toggleRanking()">Rank</a> | ` +
   `${mrtDumpDate}`;
 }
 

@@ -49,8 +49,16 @@ export const constants = {
     peerFinderUrl: "https://dn42.us/peers/",
     myIpUrl: `${location.protocol}//map.dn42/myip/`,
     myIpApi: `${location.protocol}//map.dn42/myip/api`,
+    // rawJsonApiUrl: window.location.href.includes(".dn42")
+    //   ? "https://map.dn42/map?type=json"
+    //   : "https://api.iedon.com/dn42/map?type=json",
     rawJsonApiUrl: window.location.href.includes(".dn42")
-      ? "https://map.dn42/map?type=json"
-      : "https://api.iedon.com/dn42/map?type=json",
+         ? "https://wiki.dn42/internal/Internal-Services#map-dn42-api-services"
+         : "https://wiki.dn42.dev/internal/Internal-Services#map-dn42-api-services",
+    queryRoutesUrl: window.location.href.includes(".dn42")
+      ? "https://lg.iedon.dn42/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/"
+      : "https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/",
+    routeGraphInitiateAsn: 4242422189,
+    toolboxUrl: "https://dn42.g-load.eu/toolbox/"
   },
 };

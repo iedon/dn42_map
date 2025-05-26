@@ -275,11 +275,32 @@ button:hover {
   overflow-wrap: break-word;
 }
 
+.whois th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.whois th.sort-asc::after {
+  content: " ↑";
+}
+
+.whois th.sort-desc::after {
+  content: " ↓";
+}
+
 .whois .key {
   font-size: 12px;
   font-weight: bold;
   color: #81c784;
   text-align: left;
+}
+
+.whois td.center {
+  text-align: center;
+}
+
+.whois td.right {
+  text-align: right;
 }
 
 .whois td.rank,

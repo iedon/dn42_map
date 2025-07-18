@@ -1,7 +1,17 @@
 // src/graph/event.js
 
 import { constants } from "../constants";
-import { showTooltip, hideTooltip, navigateToNode, showSidebar, closeSideBar, getShowingSideBar, checkSearchInputEventListener, closeSideBarEventListener, searchNodeEventListener } from "./sidebar";
+import {
+  showTooltip,
+  hideTooltip,
+  navigateToNode,
+  showSidebar,
+  closeSideBar,
+  getShowingSideBar,
+  checkSearchInputEventListener,
+  closeSideBarEventListener,
+  searchNodeEventListener,
+} from "./sidebar";
 import { forceCenter } from "d3-force";
 import { select } from "d3-selection";
 
@@ -9,24 +19,18 @@ let map, focusingNode, draggingNode, showingTooltip, pointerIsDown;
 export function initEvent(_map) {
   map = _map;
 
-  const clearSelection = () => {
-    closeSideBar();
-    map.hoveredNode = null;
-    map.draw();
-  }
-
   map.canvas.addEventListener("pointermove", pointerMove);
   map.canvas.addEventListener("pointerleave", pointerLeave);
   map.canvas.addEventListener("pointerdown", pointerDown);
   map.canvas.addEventListener("pointerup", pointerUp);
-  map.canvas.addEventListener("contextmenu", e => {
+  map.canvas.addEventListener("contextmenu", (e) => {
     // Right click
     if (e.button === 2) clearSelection();
     // all other click will also be disabled
     e.preventDefault();
     return false;
   });
-  document.addEventListener("keydown", e => {
+  document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       clearSelection();
       e.preventDefault();
@@ -37,7 +41,25 @@ export function initEvent(_map) {
   checkSearchInputEventListener();
   closeSideBarEventListener();
   searchNodeEventListener();
+  hashChangeEventListener();
   enableZoom();
+}
+
+// Clear selection and close sidebar
+function clearSelection() {
+  if (!map) return;
+  closeSideBar();
+  map.hoveredNode = null;
+  map.draw();
+  // Clear URL hash when clearing selection
+  if (window.location.hash) {
+    window.history.pushState(
+      "",
+      document.title,
+      window.location.pathname + window.location.search
+    );
+  }
+  document.title = constants.pageTitle;
 }
 
 // Register zoom after other canvas events, and disable default double click event
@@ -180,7 +202,7 @@ function findClosestNode(x, y) {
   let closestNode = null;
   const coverage = 15;
 
-  map.nodes.forEach(node => {
+  map.nodes.forEach((node) => {
     // Calculate distance between the mouse position
     const dist = Math.hypot(node.x - x, node.y - y);
 
@@ -192,4 +214,50 @@ function findClosestNode(x, y) {
   });
 
   return closestNode;
+}
+
+// Hash-based navigation support
+function hashChangeEventListener() {
+  window.addEventListener("hashchange", handleHashChange);
+
+  // Check for initial hash on page load
+  if (window.location.hash) {
+    // Delay hash handling until simulation has settled
+    map.simulation.on("end", () => {
+      handleHashChange();
+    });
+  }
+}
+
+function handleHashChange() {
+  const hash = window.location.hash.slice(1); // Remove the # character
+  if (hash && map.nodeMap) {
+    searchNodeByHash(hash);
+  }
+}
+
+function searchNodeByHash(hash) {
+  if (!hash.length) return;
+
+  const query = hash.toLowerCase();
+  let node = map.nodeMap.get(query);
+
+  if (node) {
+    navigateToNode(node);
+    showSidebar(node);
+    return;
+  }
+
+  // DN42 trick: auto add 424242 if searching by partial ASN (e.g., "2190" -> "4242422190")
+  if (!hash.startsWith("424242")) {
+    const asn = `424242${query}`;
+    node = map.nodeMap.get(asn);
+    if (node) {
+      navigateToNode(node);
+      showSidebar(node);
+      return;
+    }
+  }
+
+  clearSelection();
 }

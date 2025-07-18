@@ -37,9 +37,18 @@ const map = {
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
+  isLoading: true,
+  loadingOverlay: null,
+  loadingPercentage: null,
 };
 
+let isFirstLoad = true; // Track if this is the first load to avoid unnecessary re-centering/scaling
+
 function initCanvas(containerSelector) {
+  // Get loading overlay reference
+  map.loadingOverlay = document.getElementById("loading-overlay");
+  map.loadingPercentage = document.querySelector(".loading-percentage");
+
   // Detect HiDPI & Scale Canvas
   map.canvas = document.querySelector(containerSelector);
   map.ctx = map.canvas.getContext("2d");
@@ -54,17 +63,42 @@ function initCanvas(containerSelector) {
   // Zoom & Pan
   map.zoom = d3zoom()
     .scaleExtent([0.3, 4])
-    .on("zoom", event => {
+    .on("zoom", (event) => {
       map.transform = event.transform;
       map.draw();
     });
 }
 
-function initScale() {
-  // Set initial scale
+function setInitialScale() {
+  // Calculate center of mass of all nodes
+  let centerX = 0;
+  let centerY = 0;
+
+  if (map.nodes && map.nodes.length > 0) {
+    map.nodes.forEach((node) => {
+      centerX += node.x || 0;
+      centerY += node.y || 0;
+    });
+    centerX /= map.nodes.length;
+    centerY /= map.nodes.length;
+  } else {
+    // Fallback to canvas center if no nodes
+    centerX = window.innerWidth / 2;
+    centerY = window.innerHeight / 2;
+  }
+
+  // Calculate the transform to center the nodes and apply initial scale
+  const canvasCenterX = window.innerWidth / 2;
+  const canvasCenterY = window.innerHeight / 2;
+  const initialScale = constants.render.canvas.initialScale;
+
+  const translateX = canvasCenterX - centerX * initialScale;
+  const translateY = canvasCenterY - centerY * initialScale;
+
+  // Set initial scale and translation
   select(map.canvas).call(
     map.zoom.transform,
-    zoomIdentity.scale(constants.render.canvas.initialScale)
+    zoomIdentity.translate(translateX, translateY).scale(initialScale)
   );
 }
 
@@ -75,7 +109,7 @@ function preprocessDataset(data, isDump = false) {
   const linkMap = new Map();
 
   // Setup peers and fast lookup map for nodes
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     node.label = node.desc
       .replace("-DN42", "")
       .replace("-MNT", "")
@@ -105,7 +139,7 @@ function preprocessDataset(data, isDump = false) {
       node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
 
     const parsed = [];
-    node.routes?.forEach(route => {
+    node.routes?.forEach((route) => {
       const length = route.length;
       // Check the oneof fields: either "ipv4" or "ipv6" is set.
       if (route.ipv4 != null) {
@@ -136,7 +170,7 @@ function preprocessDataset(data, isDump = false) {
 
   // Convert links to use actual node object references
   if (!isDump)
-    links.forEach(link => {
+    links.forEach((link) => {
       link.source = nodes[link.source ?? 0];
       link.target = nodes[link.target ?? 0];
       if (!link.source.peers) link.source.peers = new Set();
@@ -148,7 +182,7 @@ function preprocessDataset(data, isDump = false) {
 
   // Scale node sizes based on peer count
   if (!isDump) {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       node.size =
         scaleSqrt(
           constants.render.node.scaleSqrtDomain,
@@ -174,7 +208,7 @@ function initSimulation() {
     .force(
       "link",
       forceLink(map.links)
-        .id(d => d.asn)
+        .id((d) => d.asn)
         .distance(constants.render.d3force.linkDistance)
     )
     .force(
@@ -183,24 +217,81 @@ function initSimulation() {
     )
     .force("center", forceCenter(window.innerWidth / 2, window.innerHeight / 2))
     .alphaDecay(constants.render.d3force.alphaDecay)
-    .on("tick", map.draw);
+    .on("tick", map.draw)
+    .on("end", () => {
+      // Hide loading overlay when simulation stops
+      hideLoadingOverlay();
+      if (isFirstLoad) {
+        setInitialScale();
+        isFirstLoad = false;
+      }
+    });
+
+  // Also hide loading overlay if alpha gets low enough (simulation is mostly settled)
+  map.simulation.on("tick", () => {
+    map.draw();
+
+    if (map.isLoading) {
+      const alpha = map.simulation.alpha();
+      updateLoadingPercentage(alpha);
+      if (alpha < 0.1) {
+        hideLoadingOverlay();
+        if (isFirstLoad) {
+          setInitialScale();
+          isFirstLoad = false;
+        }
+      }
+    }
+  });
+
   map.draw();
+}
+
+function updateLoadingPercentage(alpha) {
+  if (map.loadingPercentage) {
+    // Alpha starts at 1.0 and decreases towards 0
+    // Convert to percentage (0% at alpha=1.0, 100% at alpha=0)
+    let percentage = Math.max(
+      0,
+      Math.min(100, Math.round(((1.0 - alpha) / 1.0) * 100))
+    );
+    if (percentage >= 90) percentage = 100; // Ensure we show 100% when alpha is very low(<0.1)
+    map.loadingPercentage.textContent = `${percentage}%`;
+  }
+}
+
+function hideLoadingOverlay() {
+  if (map.isLoading && map.loadingOverlay) {
+    map.isLoading = false;
+    map.loadingOverlay.classList.add("hidden");
+    // Remove the overlay from DOM after transition
+    setTimeout(() => {
+      if (map.loadingOverlay && map.loadingOverlay.parentNode) {
+        map.loadingOverlay.parentNode.removeChild(map.loadingOverlay);
+      }
+    }, 500);
+  }
 }
 
 // Draw Function (HiDPI aware)
 map.draw = () => {
-  const { canvas, ctx, transform, links, nodes, hoveredNode } = map;
+  const { canvas, ctx, transform, links, nodes, hoveredNode, isLoading } = map;
 
   // Clean canvas with background image
   ctx.fillStyle = constants.render.canvas.backgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Don't draw nodes and links if still loading (prevents seeing nodes flying around)
+  if (isLoading) {
+    return;
+  }
 
   ctx.save();
   ctx.translate(transform.x, transform.y);
   ctx.scale(transform.k, transform.k);
 
   // Draw all links in one loop
-  links.forEach(d => {
+  links.forEach((d) => {
     if (
       !hoveredNode ||
       (d.source !== hoveredNode && d.target !== hoveredNode)
@@ -216,7 +307,7 @@ map.draw = () => {
 
   // Draw emphasized links separately
   if (hoveredNode) {
-    links.forEach(d => {
+    links.forEach((d) => {
       if (d.source === hoveredNode || d.target === hoveredNode) {
         ctx.beginPath();
         ctx.moveTo(d.source.x, d.source.y);
@@ -231,7 +322,7 @@ map.draw = () => {
   const zoomSufficient = transform.k >= 0.65;
 
   // Draw nodes
-  nodes.forEach(d => {
+  nodes.forEach((d) => {
     ctx.beginPath();
     ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
 
@@ -294,11 +385,14 @@ map.draw = () => {
  * Initializes the map with given data and container ID.
  */
 export function initMap(data, containerSelector) {
+  map.isLoading = true; // Ensure loading state is set
   map.rawData = data;
+
   initCanvas(containerSelector);
+
   Object.assign(map, preprocessDataset(data));
   initSimulation();
-  initScale();
+
   initSidebar(map);
   initEvent(map);
 }

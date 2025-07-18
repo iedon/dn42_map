@@ -1,6 +1,7 @@
 // src/constants.js
 
 export const constants = {
+  pageTitle: "DN42 Realtime Network Map",
   binVendorMagic: "IEDON.NET",
   render: {
     pixelRatio: window.devicePixelRatio || 1,

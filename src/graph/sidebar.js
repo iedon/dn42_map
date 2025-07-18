@@ -2,6 +2,8 @@
 
 import { constants } from "../constants";
 import { getMyIpData, getWhoisData } from "./api";
+import { select } from "d3-selection";
+import { zoomIdentity } from "d3-zoom";
 
 let map, showingSideBar;
 export const initSidebar = m => { map = m };
@@ -234,9 +236,38 @@ export const navigateToNode = nodeOrAsn => {
     ? map.nodeMap.get(nodeOrAsn.toString())
     : nodeOrAsn;
 
-  if (!node) return;
+  if (!node) {
+    document.title = constants.pageTitle;
+    return;
+  }
 
   map.hoveredNode = node;
+
+  // Update URL hash for direct linking
+  if (window.location.hash !== `#${node.asn}`) {
+    window.location.hash = node.asn;
+  }
+
+  // Center the view on the node with smooth transition
+  if (node.x !== undefined && node.y !== undefined) {
+    const canvasCenterX = window.innerWidth / 2;
+    const canvasCenterY = window.innerHeight / 2;
+    const currentScale = map.transform.k;
+    
+    const translateX = canvasCenterX - node.x * currentScale;
+    const translateY = canvasCenterY - node.y * currentScale;
+    
+    // Apply the new transform to center the node with smooth transition
+    select(map.canvas)
+      .transition()
+      .duration(500)
+      .call(
+        map.zoom.transform,
+        zoomIdentity.translate(translateX, translateY).scale(currentScale)
+      );
+  }
+  
+  document.title = `${node.desc} (AS${node.asn}) - ${constants.pageTitle}`;
   map.draw();
 };
 window.navigateToNode = (nodeOrAsn, sideBar=false) => {
@@ -260,7 +291,21 @@ function searchNode() {
     navigateToNode(node);
     showSidebar(node);
   } else {
-    alert("Node not found.");
+    // alert("Node not found.");
+    // DN42 trick: auto add 424242 if searching by "2189"(eg) -> 4242422189
+    if (!value.startsWith("424242")) {
+      const asn = `424242${query}`;
+      const node = map.nodeMap.get(asn);
+      if (node) {
+        navigateToNode(node);
+        showSidebar(node);
+        document.getElementById("search-input").value = asn;
+      } else {
+        alert("Node not found.");
+      }
+    } else {
+      alert("Node not found.");
+    }
   }
 }
 

@@ -48,6 +48,7 @@ function initCanvas(containerSelector) {
   // Get loading overlay reference
   map.loadingOverlay = document.getElementById("loading-overlay");
   map.loadingPercentage = document.querySelector(".loading-percentage");
+  map.loadingOverlay.querySelector(".loading-text").textContent = "Rendering DN42 Network Map";
 
   // Detect HiDPI & Scale Canvas
   map.canvas = document.querySelector(containerSelector);
@@ -234,7 +235,7 @@ function initSimulation() {
     if (map.isLoading) {
       const alpha = map.simulation.alpha();
       updateLoadingPercentage(alpha);
-      if (alpha < 0.1) {
+      if (alpha < 0.08) { // early close loading overlay
         hideLoadingOverlay();
         if (isFirstLoad) {
           setInitialScale();
@@ -255,7 +256,9 @@ function updateLoadingPercentage(alpha) {
       0,
       Math.min(100, Math.round(((1.0 - alpha) / 1.0) * 100))
     );
-    if (percentage >= 90) percentage = 100; // Ensure we show 100% when alpha is very low(<0.1)
+    
+    // Ensure we show 100% when alpha is very low(<0.08)
+    if (percentage >= 92) percentage = 100;
     map.loadingPercentage.textContent = `${percentage}%`;
   }
 }

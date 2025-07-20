@@ -233,12 +233,12 @@ function handleHashChange() {
   const hash = window.location.hash.slice(1); // Remove the # character
   if (hash && map.nodeMap) {
     searchNodeByHash(hash);
+  } else {
+    clearSelection();
   }
 }
 
 function searchNodeByHash(hash) {
-  if (!hash.length) return;
-
   const query = hash.toLowerCase();
   let node = map.nodeMap.get(query);
 

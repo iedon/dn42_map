@@ -32,9 +32,36 @@ body {
   height: 50px;
   margin: 0 auto;
   border: 4px solid #555;
-  border-top: 4px solid #ce8815;
   border-radius: 50%;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Spinning animation for fetching */
+.loading-spinner.fetching {
+  border-top: 4px solid #ce8815;
   animation: spin 1s linear infinite;
+  background: none;
+}
+
+/* Progress ring for rendering */
+.loading-spinner.rendering {
+  border: 4px solid #555;
+  animation: none;
+  background: conic-gradient(from 0deg, #ce8815 0deg, #ce8815 0deg, transparent 0deg);
+  border-radius: 50%;
+  position: relative;
+}
+
+.loading-spinner.rendering::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 42px;
+  height: 42px;
+  background: #333;
+  border-radius: 50%;
 }
 
 @keyframes spin {

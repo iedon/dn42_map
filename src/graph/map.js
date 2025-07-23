@@ -38,19 +38,14 @@ const map = {
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
-  isLoading: true,
-  loadingOverlay: null,
-  loadingPercentage: null,
 };
 
-let isFirstLoad = true; // Track if this is the first load to avoid unnecessary re-centering/scaling
+let isFirstTimeLoading,
+  isFirstTimeLoaded = true;
+let updateLoadingPercentageCb = null;
+let finishLoadingCb = null;
 
 function initCanvas(containerSelector) {
-  // Get loading overlay reference
-  map.loadingOverlay = document.getElementById("loading-overlay");
-  map.loadingPercentage = document.querySelector(".loading-percentage");
-  map.loadingOverlay.querySelector(".loading-text").textContent = "Rendering DN42 Network Map";
-
   // Detect HiDPI & Scale Canvas
   map.canvas = document.querySelector(containerSelector);
   map.ctx = map.canvas.getContext("2d");
@@ -175,7 +170,7 @@ function preprocessDataset(data, isDump = false) {
   if (!isDump) {
     const seenLinks = new Set();
     deduplicatedLinks = [];
-    
+
     links.forEach((link) => {
       link.source = nodes[link.source ?? 0];
       link.target = nodes[link.target ?? 0];
@@ -188,8 +183,11 @@ function preprocessDataset(data, isDump = false) {
       // Deduplicate for rendering
       const sourceAsn = link.source.asn;
       const targetAsn = link.target.asn;
-      const linkKey = sourceAsn < targetAsn ? `${sourceAsn}-${targetAsn}` : `${targetAsn}-${sourceAsn}`;
-      
+      const linkKey =
+        sourceAsn < targetAsn
+          ? `${sourceAsn}-${targetAsn}`
+          : `${targetAsn}-${sourceAsn}`;
+
       if (!seenLinks.has(linkKey)) {
         seenLinks.add(linkKey);
         deduplicatedLinks.push(link);
@@ -238,10 +236,11 @@ function initSimulation() {
     .on("tick", map.draw)
     .on("end", () => {
       // Hide loading overlay when simulation stops
-      hideLoadingOverlay();
-      if (isFirstLoad) {
+      finishLoadingCb();
+      isFirstTimeLoading = false;
+      if (isFirstTimeLoaded) {
         setInitialScale();
-        isFirstLoad = false;
+        isFirstTimeLoaded = false;
       }
     });
 
@@ -249,14 +248,16 @@ function initSimulation() {
   map.simulation.on("tick", () => {
     map.draw();
 
-    if (map.isLoading) {
+    if (isFirstTimeLoading) {
       const alpha = map.simulation.alpha();
-      updateLoadingPercentage(alpha);
-      if (alpha < 0.05) { // early close loading overlay
-        hideLoadingOverlay();
-        if (isFirstLoad) {
+      updateLoadingPercentageCb(alpha);
+      if (alpha < 0.02) {
+        // early close loading overlay
+        finishLoadingCb();
+        isFirstTimeLoading = false;
+        if (isFirstTimeLoaded) {
           setInitialScale();
-          isFirstLoad = false;
+          isFirstTimeLoaded = false;
         }
       }
     }
@@ -265,96 +266,71 @@ function initSimulation() {
   map.draw();
 }
 
-function updateLoadingPercentage(alpha) {
-  if (map.loadingPercentage) {
-    // Alpha starts at 1.0 and decreases towards 0
-    // Convert to percentage (0% at alpha=1.0, 100% at alpha=0)
-    let percentage = Math.max(
-      0,
-      Math.min(100, Math.round(((1.0 - alpha) / 1.0) * 100))
-    );
-    
-    // Ensure we show 100% when alpha is very low(<0.05)
-    if (percentage >= 95) percentage = 100;
-    map.loadingPercentage.textContent = `${percentage}%`;
-  }
-}
-
-function hideLoadingOverlay() {
-  if (map.isLoading && map.loadingOverlay) {
-    map.isLoading = false;
-    map.loadingOverlay.classList.add("hidden");
-    // Remove the overlay from DOM after transition
-    setTimeout(() => {
-      if (map.loadingOverlay && map.loadingOverlay.parentNode) {
-        map.loadingOverlay.parentNode.removeChild(map.loadingOverlay);
-      }
-    }, 500);
-  }
-}
-
 // Draw Function (HiDPI aware)
 map.draw = () => {
-  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode, isLoading } = map;
+  // Don't draw nodes and links if still loading (prevents seeing nodes flying around)
+  if (isFirstTimeLoading) {
+    return;
+  }
+
+  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode } = map;
 
   // Clean canvas with background image
   ctx.fillStyle = constants.render.canvas.backgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Don't draw nodes and links if still loading (prevents seeing nodes flying around)
-  if (isLoading) {
-    return;
-  }
 
   ctx.save();
   ctx.translate(transform.x, transform.y);
   ctx.scale(transform.k, transform.k);
 
   // Draw all links
+  const linkCount = deduplicatedLinks.length;
+  ctx.strokeStyle = linkColorDefault;
+  ctx.lineWidth = linkWidthDefault;
   if (!hoveredNode) {
-    // Set style once for all default links
-    ctx.strokeStyle = linkColorDefault;
-    ctx.lineWidth = linkWidthDefault;
-    
-    deduplicatedLinks.forEach((d) => {
+    for (let i = 0; i < linkCount; i++) {
+      const d = deduplicatedLinks[i];
       ctx.beginPath();
       ctx.moveTo(d.source.x, d.source.y);
       ctx.lineTo(d.target.x, d.target.y);
       ctx.stroke();
-    });
+    }
   } else {
-    // Render in two passes for hover state
-    // Phase 1: Default links
-    ctx.strokeStyle = linkColorDefault;
-    ctx.lineWidth = linkWidthDefault;
-    
-    deduplicatedLinks.forEach((d) => {
-      if (d.source !== hoveredNode && d.target !== hoveredNode) {
-        ctx.beginPath();
-        ctx.moveTo(d.source.x, d.source.y);
-        ctx.lineTo(d.target.x, d.target.y);
-        ctx.stroke();
-      }
-    });
-    
-    // Phase 2: Emphasized links
-    ctx.strokeStyle = linkColorEmphasize;
-    ctx.lineWidth = linkWidthEmphasize;
-    
-    deduplicatedLinks.forEach((d) => {
+    const emphasizedLinks = [];
+    for (let i = 0; i < linkCount; i++) {
+      const d = deduplicatedLinks[i];
       if (d.source === hoveredNode || d.target === hoveredNode) {
+        emphasizedLinks.push(d);
+      } else {
         ctx.beginPath();
         ctx.moveTo(d.source.x, d.source.y);
         ctx.lineTo(d.target.x, d.target.y);
         ctx.stroke();
       }
-    });
+    }
+
+    // Render emphasized links
+    const linkCountEmphasized = emphasizedLinks.length;
+    if (linkCountEmphasized > 0) {
+      ctx.strokeStyle = linkColorEmphasize;
+      ctx.lineWidth = linkWidthEmphasize;
+      for (let i = 0; i < linkCountEmphasized; i++) {
+        const d = emphasizedLinks[i];
+        ctx.beginPath();
+        ctx.moveTo(d.source.x, d.source.y);
+        ctx.lineTo(d.target.x, d.target.y);
+        ctx.stroke();
+      }
+    }
   }
 
   const zoomSufficient = transform.k >= 0.65;
 
   // Draw nodes
-  nodes.forEach((d) => {
+  const nodeCount = nodes.length;
+  for (let i = 0; i < nodeCount; i++) {
+    const d = nodes[i];
+
     ctx.beginPath();
     ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
 
@@ -386,7 +362,7 @@ map.draw = () => {
         d.y + d.size + d.labelFontSizeCalculated / 2 + 2
       );
     }
-  });
+  }
 
   ctx.restore();
 };
@@ -416,13 +392,25 @@ map.draw = () => {
 /**
  * Initializes the map with given data and container ID.
  */
-export function initMap(data, containerSelector) {
-  map.isLoading = true; // Ensure loading state is set
+export function initMap(
+  data,
+  containerSelector,
+  setLoadingState,
+  updateLoadingPercentageCallback,
+  finishLoadingCallback
+) {
+  isFirstTimeLoading = true;
+  updateLoadingPercentageCb = updateLoadingPercentageCallback;
+  finishLoadingCb = finishLoadingCallback;
+
+  setLoadingState("parsing");
+
   map.rawData = data;
-
   initCanvas(containerSelector);
-
   Object.assign(map, preprocessDataset(data));
+
+  setLoadingState("rendering");
+
   initSimulation();
 
   initSidebar(map);

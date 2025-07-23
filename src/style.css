@@ -81,6 +81,8 @@ body {
   cursor: default;
   z-index: 100;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #search-container {
@@ -121,6 +123,7 @@ body {
 
 #map {
   user-select: none;
+  -webkit-user-select: none;
 }
 
 #metadata a,
@@ -160,6 +163,8 @@ body {
   display: none;
   cursor: default;
   align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #search-input {
@@ -329,6 +334,7 @@ button:hover {
 .whois th {
   cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .whois th.sort-asc::after {

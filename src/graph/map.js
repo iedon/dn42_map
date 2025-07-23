@@ -34,6 +34,7 @@ const map = {
   nodeMap: null,
   linkMap: null,
   links: null,
+  deduplicatedLinks: null,
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
@@ -169,8 +170,12 @@ function preprocessDataset(data, isDump = false) {
     node.centrality.closeness = node.centrality.closeness || 0.0;
   });
 
-  // Convert links to use actual node object references
-  if (!isDump)
+  // Convert links to use actual node object references and deduplicate
+  let deduplicatedLinks = links;
+  if (!isDump) {
+    const seenLinks = new Set();
+    deduplicatedLinks = [];
+    
     links.forEach((link) => {
       link.source = nodes[link.source ?? 0];
       link.target = nodes[link.target ?? 0];
@@ -179,7 +184,18 @@ function preprocessDataset(data, isDump = false) {
       link.source.peers.add(link.target.asn);
       link.target.peers.add(link.source.asn);
       linkMap.set(`${link.source.asn}_${link.target.asn}`, true);
+
+      // Deduplicate for rendering
+      const sourceAsn = link.source.asn;
+      const targetAsn = link.target.asn;
+      const linkKey = sourceAsn < targetAsn ? `${sourceAsn}-${targetAsn}` : `${targetAsn}-${sourceAsn}`;
+      
+      if (!seenLinks.has(linkKey)) {
+        seenLinks.add(linkKey);
+        deduplicatedLinks.push(link);
+      }
     });
+  }
 
   // Scale node sizes based on peer count
   if (!isDump) {
@@ -198,6 +214,7 @@ function preprocessDataset(data, isDump = false) {
   return {
     nodes,
     links,
+    deduplicatedLinks,
     nodeMap,
     linkMap,
   };
@@ -235,7 +252,7 @@ function initSimulation() {
     if (map.isLoading) {
       const alpha = map.simulation.alpha();
       updateLoadingPercentage(alpha);
-      if (alpha < 0.08) { // early close loading overlay
+      if (alpha < 0.05) { // early close loading overlay
         hideLoadingOverlay();
         if (isFirstLoad) {
           setInitialScale();
@@ -257,8 +274,8 @@ function updateLoadingPercentage(alpha) {
       Math.min(100, Math.round(((1.0 - alpha) / 1.0) * 100))
     );
     
-    // Ensure we show 100% when alpha is very low(<0.08)
-    if (percentage >= 92) percentage = 100;
+    // Ensure we show 100% when alpha is very low(<0.05)
+    if (percentage >= 95) percentage = 100;
     map.loadingPercentage.textContent = `${percentage}%`;
   }
 }
@@ -278,7 +295,7 @@ function hideLoadingOverlay() {
 
 // Draw Function (HiDPI aware)
 map.draw = () => {
-  const { canvas, ctx, transform, links, nodes, hoveredNode, isLoading } = map;
+  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode, isLoading } = map;
 
   // Clean canvas with background image
   ctx.fillStyle = constants.render.canvas.backgroundColor;
@@ -293,30 +310,42 @@ map.draw = () => {
   ctx.translate(transform.x, transform.y);
   ctx.scale(transform.k, transform.k);
 
-  // Draw all links in one loop
-  links.forEach((d) => {
-    if (
-      !hoveredNode ||
-      (d.source !== hoveredNode && d.target !== hoveredNode)
-    ) {
+  // Draw all links
+  if (!hoveredNode) {
+    // Set style once for all default links
+    ctx.strokeStyle = linkColorDefault;
+    ctx.lineWidth = linkWidthDefault;
+    
+    deduplicatedLinks.forEach((d) => {
       ctx.beginPath();
       ctx.moveTo(d.source.x, d.source.y);
       ctx.lineTo(d.target.x, d.target.y);
-      ctx.strokeStyle = linkColorDefault;
-      ctx.lineWidth = linkWidthDefault;
       ctx.stroke();
-    }
-  });
-
-  // Draw emphasized links separately
-  if (hoveredNode) {
-    links.forEach((d) => {
+    });
+  } else {
+    // Render in two passes for hover state
+    // Phase 1: Default links
+    ctx.strokeStyle = linkColorDefault;
+    ctx.lineWidth = linkWidthDefault;
+    
+    deduplicatedLinks.forEach((d) => {
+      if (d.source !== hoveredNode && d.target !== hoveredNode) {
+        ctx.beginPath();
+        ctx.moveTo(d.source.x, d.source.y);
+        ctx.lineTo(d.target.x, d.target.y);
+        ctx.stroke();
+      }
+    });
+    
+    // Phase 2: Emphasized links
+    ctx.strokeStyle = linkColorEmphasize;
+    ctx.lineWidth = linkWidthEmphasize;
+    
+    deduplicatedLinks.forEach((d) => {
       if (d.source === hoveredNode || d.target === hoveredNode) {
         ctx.beginPath();
         ctx.moveTo(d.source.x, d.source.y);
         ctx.lineTo(d.target.x, d.target.y);
-        ctx.strokeStyle = linkColorEmphasize;
-        ctx.lineWidth = linkWidthEmphasize;
         ctx.stroke();
       }
     });
@@ -339,10 +368,10 @@ map.draw = () => {
 
     ctx.fill();
 
-    // draw border 0.5px, removed due to switched to dark theme
-    // ctx.strokeStyle = "#fff";
-    // ctx.lineWidth = 0.5;
-    // ctx.stroke();
+    // draw border for nodes
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
 
     // Draw labels only if zoom level is sufficient
     if (zoomSufficient) {

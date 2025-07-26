@@ -39,7 +39,6 @@ function finishLoading() {
       }
     }, 500);
   }
-  console.log("✅ Graph initialized successfully.");
 }
 
 function updateLoadingPercentage(alpha) {
@@ -91,7 +90,7 @@ window.onload = async function () {
       data.metadata.data_timestamp * 1000
     ).toLocaleString();
     console.log(
-      `🔨 Map data parsed.\n Binary generated on: ${binFileDate}\n MRT dump date: ${mrtDumpDate}`
+      `🔨 Map binary generated on: ${binFileDate}\n MRT dump date: ${mrtDumpDate}`
     );
 
     initMap(data, "#map", setLoadingState, updateLoadingPercentage, finishLoading);

@@ -151,7 +151,7 @@ export function showMetadata(mrtDumpDate) {
   `<a href="${constants.dn42.homeUrl}" target="_blank">DN42</a> | ` +
   `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer Finder</a> | ` +
   `<a href="${constants.dn42.routeGraphsUrl}" target="_blank">Routegraph</a> | ` +
-  `<a href="${constants.dn42.toolboxUrl}" target="_blank">Toolbox</a> | ` +
+  `<a href="${constants.dn42.toolboxUrl}" target="_blank">Tools</a> | ` +
   // `<a onclick="javascript:window.dumpJson()">Dump</a> | ` +
   `<a href="${constants.dn42.rawJsonApiUrl}" target="_blank">API</a> | ` +
   `<a onclick="javascript:window.toggleRanking()">Rank</a> | ` +

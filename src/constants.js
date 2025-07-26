@@ -13,6 +13,7 @@ export const constants = {
     canvas: {
       initialScale: 1.45,
       backgroundColor: "#333",
+      viewportMargin: 100, // Extra margin for smooth viewport culling transitions
     },
     node: {
       minSize: 3,
@@ -24,7 +25,14 @@ export const constants = {
       colorLinked: "#667dfd",
       labelColor: "#fff",
       labelFontSizePx: 6,
-      labelFontFamily: "Inter, sans-serif",
+      labelFontFamily: "sans-serif",
+      labelCulling: {
+        baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels
+        highZoomThreshold: 1.2, // Zoom level to show all labels in viewport
+        maxLabelsInView: 100, // Maximum number of labels to render at once
+        importanceThresholdRange: [500, 50], // Importance score range for medium zoom levels
+      },
+      maxFPS: 75,
     },
     link: {
       colorDefault: "#1d5232",
@@ -54,12 +62,12 @@ export const constants = {
     //   ? "https://map.dn42/map?type=json"
     //   : "https://api.iedon.com/dn42/map?type=json",
     rawJsonApiUrl: window.location.href.includes(".dn42")
-         ? "https://wiki.dn42/internal/Internal-Services#map-dn42-api-services"
-         : "https://wiki.dn42.dev/internal/Internal-Services#map-dn42-api-services",
+      ? "https://wiki.dn42/internal/Internal-Services#map-dn42-api-services"
+      : "https://wiki.dn42.dev/internal/Internal-Services#map-dn42-api-services",
     queryRoutesUrl: window.location.href.includes(".dn42")
       ? "https://lg.iedon.dn42/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/"
       : "https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/",
     routeGraphInitiateAsn: 4242422189,
-    toolboxUrl: "https://dn42.g-load.eu/toolbox/"
+    toolboxUrl: "https://dn42.g-load.eu/toolbox/",
   },
 };

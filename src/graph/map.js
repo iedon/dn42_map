@@ -5,6 +5,7 @@ import { ipv4FromUint32, ipv6FromQuard32 } from "../utils/ipUtil";
 import { scaleSqrt } from "../utils/scaleUtil";
 import { initSidebar } from "./sidebar";
 import { initEvent } from "./event";
+import { mapDrawer } from "./drawer";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity } from "d3-zoom";
 import {
@@ -13,16 +14,6 @@ import {
   forceLink,
   forceManyBody,
 } from "d3-force";
-
-// Precompute colors and widths
-const linkColorDefault = constants.render.link.colorDefault;
-const linkWidthDefault = constants.render.link.widthDefault;
-const linkColorEmphasize = constants.render.link.colorEmphasize;
-const linkWidthEmphasize = constants.render.link.widthEmphasize;
-const nodeColorCurrent = constants.render.node.colorCurrent;
-const nodeColorLinked = constants.render.node.colorLinked;
-const nodeColorDefault = constants.render.node.colorDefault;
-const nodeLabelColor = constants.render.node.labelColor;
 
 const map = {
   rawData: null,
@@ -57,7 +48,16 @@ function initCanvas(containerSelector) {
   map.canvas.style.height = `${window.innerHeight}px`;
   map.ctx.scale(constants.render.pixelRatio, constants.render.pixelRatio);
 
-  // Zoom & Pan
+  // Map Drawer
+  map.draw = () => {
+    // Don't draw nodes and links if still loading (prevents seeing nodes flying around)
+    if (isFirstTimeLoading) {
+      return;
+    }
+    mapDrawer(map);
+  };
+
+  // Set Zoom & Pan support
   map.zoom = d3zoom()
     .scaleExtent([0.3, 4])
     .on("zoom", (event) => {
@@ -265,107 +265,6 @@ function initSimulation() {
 
   map.draw();
 }
-
-// Draw Function (HiDPI aware)
-map.draw = () => {
-  // Don't draw nodes and links if still loading (prevents seeing nodes flying around)
-  if (isFirstTimeLoading) {
-    return;
-  }
-
-  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode } = map;
-
-  // Clean canvas with background image
-  ctx.fillStyle = constants.render.canvas.backgroundColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.save();
-  ctx.translate(transform.x, transform.y);
-  ctx.scale(transform.k, transform.k);
-
-  // Draw all links
-  const linkCount = deduplicatedLinks.length;
-  ctx.strokeStyle = linkColorDefault;
-  ctx.lineWidth = linkWidthDefault;
-  if (!hoveredNode) {
-    for (let i = 0; i < linkCount; i++) {
-      const d = deduplicatedLinks[i];
-      ctx.beginPath();
-      ctx.moveTo(d.source.x, d.source.y);
-      ctx.lineTo(d.target.x, d.target.y);
-      ctx.stroke();
-    }
-  } else {
-    const emphasizedLinks = [];
-    for (let i = 0; i < linkCount; i++) {
-      const d = deduplicatedLinks[i];
-      if (d.source === hoveredNode || d.target === hoveredNode) {
-        emphasizedLinks.push(d);
-      } else {
-        ctx.beginPath();
-        ctx.moveTo(d.source.x, d.source.y);
-        ctx.lineTo(d.target.x, d.target.y);
-        ctx.stroke();
-      }
-    }
-
-    // Render emphasized links
-    const linkCountEmphasized = emphasizedLinks.length;
-    if (linkCountEmphasized > 0) {
-      ctx.strokeStyle = linkColorEmphasize;
-      ctx.lineWidth = linkWidthEmphasize;
-      for (let i = 0; i < linkCountEmphasized; i++) {
-        const d = emphasizedLinks[i];
-        ctx.beginPath();
-        ctx.moveTo(d.source.x, d.source.y);
-        ctx.lineTo(d.target.x, d.target.y);
-        ctx.stroke();
-      }
-    }
-  }
-
-  const zoomSufficient = transform.k >= 0.65;
-
-  // Draw nodes
-  const nodeCount = nodes.length;
-  for (let i = 0; i < nodeCount; i++) {
-    const d = nodes[i];
-
-    ctx.beginPath();
-    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
-
-    if (d === hoveredNode) {
-      ctx.fillStyle = nodeColorCurrent;
-    } else if (hoveredNode && hoveredNode.peers.has(d.asn)) {
-      ctx.fillStyle = nodeColorLinked;
-    } else {
-      ctx.fillStyle = nodeColorDefault;
-    }
-
-    ctx.fill();
-
-    // draw border for nodes
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-
-    // Draw labels only if zoom level is sufficient
-    if (zoomSufficient) {
-      ctx.font =
-        d === hoveredNode ? d.labelFontFamilyBold : d.labelFontFamilyNormal;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = nodeLabelColor;
-      ctx.fillText(
-        d.label,
-        d.x,
-        d.y + d.size + d.labelFontSizeCalculated / 2 + 2
-      );
-    }
-  }
-
-  ctx.restore();
-};
 
 // Dump JSON
 // window.dumpJson = () => {

@@ -16,10 +16,27 @@ import { forceCenter } from "d3-force";
 import { select } from "d3-selection";
 
 let map, focusingNode, draggingNode, showingTooltip, pointerIsDown;
+
+// Throttle utility function
+function throttle(func, limit) {
+  let inThrottle;
+  return function () {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+}
+
 export function initEvent(_map) {
   map = _map;
 
-  map.canvas.addEventListener("pointermove", pointerMove);
+  // Throttle pointer move to improve performance (13ms ≈ 75fps, 16ms ≈ 60fps)
+  const throttledPointerMove = throttle(pointerMove, 13);
+  map.canvas.addEventListener("pointermove", throttledPointerMove);
   map.canvas.addEventListener("pointerleave", pointerLeave);
   map.canvas.addEventListener("pointerdown", pointerDown);
   map.canvas.addEventListener("pointerup", pointerUp);

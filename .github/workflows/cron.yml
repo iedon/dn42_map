@@ -51,7 +51,7 @@ jobs:
           npm install && mkdir dist
           npm run build
           cp dist/index.html pages/
-          cp -r dist/flags pages/
+          cp -r dist/assets pages/
 
           echo "Generating map..."
           cd generator

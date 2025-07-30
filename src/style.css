@@ -99,17 +99,102 @@ body {
   left: 50%;
   top: 0;
   transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: bold;
-  background: rgba(50, 50, 50, 0.9);
-  padding: 2px 10px;
-  border-radius: 0 0 5px 5px;
+  background: rgba(50, 50, 50, 0.95);
+  border-radius: 0 0 8px 8px;
   color: #e0e0e0;
   cursor: default;
-  z-index: 100;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  z-index: 101;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   user-select: none;
   -webkit-user-select: none;
+}
+
+.toolbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.toolbar-icon:hover {
+  background: rgba(221, 162, 13, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(221, 162, 13, 0.3);
+}
+
+.toolbar-icon:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(221, 162, 13, 0.2);
+}
+
+.toolbar-icon svg,
+.toolbar-icon img {
+  width: 20px;
+  height: 20px;
+  transition: all 0.2s ease;
+  filter: brightness(0) saturate(100%) invert(64%) sepia(84%) saturate(434%) hue-rotate(23deg) brightness(90%) contrast(89%);
+}
+
+.toolbar-icon:hover svg,
+.toolbar-icon:hover img {
+  transform: scale(1.1);
+  filter: brightness(0) saturate(100%) invert(85%) sepia(54%) saturate(434%) hue-rotate(23deg) brightness(104%) contrast(96%);
+}
+
+/* Tooltip styles for toolbar icons */
+.toolbar-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+}
+
+.toolbar-icon:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.toolbar-icon::before {
+  content: '';
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  z-index: 1001;
+}
+
+.toolbar-icon:hover::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 #search-container {
@@ -127,8 +212,16 @@ body {
   #metadata,
   #search-container {
     position: static !important;
-    border-radius: 0 0 0 5px !important;
+    border-radius: 0 0 0 8px !important;
     transform: none !important;
+  }
+
+  #metadata {
+    box-shadow: none !important;
+  }
+
+  #search-container {
+    border-radius: 5px !important;
   }
 
   #header-container {
@@ -140,11 +233,37 @@ body {
     align-items: flex-end;
     flex-direction: column !important;
   }
+
+  .toolbar-icons {
+    gap: 6px;
+  }
+
+  .toolbar-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .toolbar-icon svg,
+  .toolbar-icon img {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 @media screen and (max-width: 450px) {
   #sidebar {
     width: calc(100% - 40px) !important;
+  }
+
+  .toolbar-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .toolbar-icon svg,
+  .toolbar-icon img {
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -153,14 +272,12 @@ body {
   -webkit-user-select: none;
 }
 
-#metadata a,
 #myip a {
   text-decoration: none;
   color: #dda20d;
   cursor: pointer;
 }
 
-#metadata a:hover,
 #myip a:hover {
   opacity: 0.75;
 }
@@ -197,7 +314,7 @@ body {
 #search-input {
   padding: 5px;
   font-size: 14px;
-  background-color: #2e2e2e;
+  background-color: rgba(46, 46, 46, 0.5);
   color: #e0e0e0;
   border: 1px solid #555;
   border-radius: 5px;

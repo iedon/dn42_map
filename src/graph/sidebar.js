@@ -41,7 +41,7 @@ export async function showSidebar(node) {
   document.getElementById("sidebar-title").innerText = node.desc;
   const routes = `<p class="emphasized">Routes (${node.routes.length})</p><div class="whois"><table><tbody>${node.routes.map(route =>`<tr><td class="center">${route}</td><td class="right"><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>Registry</a>&nbsp;&nbsp;<a href="${constants.dn42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${constants.dn42.routeGraphInitiateAsn}" target="_blank"}>Graph</a>&nbsp;&nbsp;<a href="${constants.dn42.queryRoutesUrl}${route}" target="_blank"}>Show</a></td></tr>`).join("")}</tbody></table></div>`;
 
-  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table class="sortable"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✅" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✅" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table class="sortable"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✔" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✔" : ""}</td></tr>`).join("")}</tbody></table></div>`;
 
   const renderCentralityCard = () => `<div class="centrality"><div class="param"><div>Betweenness <strong>${node.centrality.betweenness.toFixed(5)}</strong></div><div>Closeness <strong>${node.centrality.closeness.toFixed(5)}</strong></div><div>Degree <strong>${node.centrality.degree}</strong></div></div><div class="index"><span>Map.dn42 Index</span><strong>${node.centrality.index}</strong></div><div class="rank"><span>Rank</span><strong># ${node.centrality.ranking}</strong></div></div>`;
 
@@ -101,7 +101,14 @@ export async function showSidebar(node) {
   window.sortTableByColumn(0, "number"); // Sort by ASN initially
 }
 
-window.toggleRanking = showSidebar;
+window.toggleRanking = () => {
+  if (showingRanking && getShowingSideBar()) {
+    closeSideBar();
+  } else {
+    showSidebar();
+    showingRanking = true;
+  }
+};
 
 let currentSortColumn = -1;
 let sortAsc = true;
@@ -141,21 +148,35 @@ window.sortTableByColumn = (colIndex, colType="string") => {
   rows.forEach(row => tbody.appendChild(row));
 };
 
+let showingRanking = false;
 export function closeSideBar() {
   showingSideBar = false;
+  showingRanking = false;
   document.getElementById("sidebar").style.left = "-500px";
 }
 
 export function showMetadata(mrtDumpDate) {
-  document.getElementById("metadata").innerHTML =
-  `<a href="${constants.dn42.homeUrl}" target="_blank">DN42</a> | ` +
-  `<a href="${constants.dn42.peerFinderUrl}" target="_blank">Peer Finder</a> | ` +
-  `<a href="${constants.dn42.routeGraphsUrl}" target="_blank">Routegraph</a> | ` +
-  `<a href="${constants.dn42.toolboxUrl}" target="_blank">Tools</a> | ` +
-  // `<a onclick="javascript:window.dumpJson()">Dump</a> | ` +
-  `<a href="${constants.dn42.rawJsonApiUrl}" target="_blank">API</a> | ` +
-  `<a onclick="javascript:window.toggleRanking()">Rank</a> | ` +
-  `${mrtDumpDate}`;
+  const createIconButton = (href, title, iconPath, onclick = null) => {
+    const clickHandler = onclick ? `onclick="${onclick}"` : '';
+    const linkProps = href ? `href="${href}" target="_blank"` : '';
+    return `
+      <a ${linkProps} ${clickHandler} class="toolbar-icon" data-tooltip="${title}" aria-label="${title}">
+        <img src="assets/icons/${iconPath}" alt="${title}" width="20" height="20">
+      </a>
+    `;
+  };
+
+  document.getElementById("metadata").innerHTML = `
+    <div class="toolbar-icons">
+      ${createIconButton(constants.dn42.homeUrl, "DN42 Home", "dn42.svg")}
+      ${createIconButton(constants.dn42.peerFinderUrl, "DN42 Ping Finder", "peerfinder.svg")}
+      ${createIconButton(constants.dn42.routeGraphsUrl, "Route Graph by highdef", "routegraph.svg")}
+      ${createIconButton(constants.dn42.toolboxUrl, "Tools by Kioubit", "tools.svg")}
+      ${createIconButton(constants.dn42.rawJsonApiUrl, "API Services", "api.svg")}
+      ${createIconButton(null, "All active nodes and ranking", "ranking.svg", "javascript:window.toggleRanking()")}
+      ${createIconButton(null, `Time Machine (Date of current map: ${mrtDumpDate})`, "time.svg", "javascript:window.showMapVersions()")}
+    </div>
+  `;
 }
 
 export async function showMyDN42Ip() {
@@ -164,7 +185,7 @@ export async function showMyDN42Ip() {
       const myip = document.getElementById("myip");
       const data = await getMyIpData();
       let output = "";
-      if (data.country) output += `<img src="flags/${data.country.toLowerCase()}.svg" width="16" height="16" alt="${data.ip}"/>&nbsp;&nbsp;`;
+      if (data.country) output += `<img src="assets/flags/${data.country.toLowerCase()}.svg" width="16" height="16" alt="${data.ip}"/>&nbsp;&nbsp;`;
       if (data.ip) output += `IP&nbsp;&nbsp;<a href="${constants.dn42.myIpUrl}" target="_blank">${data.ip}</a>&nbsp;`;
       if (data.origin) output += `(<a onclick="javascript:window.navigateToNode(${Number(data.origin.replace("AS",""))},true)">${data.origin}</a>)`;
       if (data.netname) output += `&nbsp;|&nbsp;from&nbsp;${data.netname}`;
@@ -318,3 +339,9 @@ export const checkSearchInputEventListener = () => document.getElementById("sear
 export const closeSideBarEventListener = () => document.getElementById("close-sidebar").addEventListener("click", closeSideBar);
 export const searchNodeEventListener = () => document.getElementById("search-btn").addEventListener("click", searchNode);
 export const getShowingSideBar = () => showingSideBar;
+
+// Placeholder function for map version selection
+window.showMapVersions = () => {
+  alert("Map version selection feature coming soon!");
+  // TODO: Implement map version/time machine functionality
+};

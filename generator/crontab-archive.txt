@@ -1,0 +1,22 @@
+# DN42 Map Archive Crontab
+# This crontab entry archives the daily map file at 3am
+# The source file /dev/shm/mapdn42.bin is refreshed every 10 minutes
+# The destination follows the pattern: /var/www/mrt/YYYY/MM/DD/map_YYYY_MM_DD.bin
+
+# Archive daily map at 3am
+0 3 * * * mkdir -p /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d) && cp /dev/shm/mapdn42.bin /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d)/map_$(date +\%Y_\%m_\%d).bin
+
+# Alternative version with logging
+# 0 3 * * * mkdir -p /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d) && cp /dev/shm/mapdn42.bin /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d)/map_$(date +\%Y_\%m_\%d).bin && echo "$(date): Archived map to /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d)/map_$(date +\%Y_\%m_\%d).bin" >> /var/log/dn42map-archive.log
+
+# To install this crontab:
+# 1. Copy the desired line (with or without logging)
+# 2. Run: crontab -e
+# 3. Paste the line and save
+# 
+# To view current crontab: crontab -l
+# 
+# The command will:
+# - Create the directory structure if it doesn't exist
+# - Copy the current map file with today's date
+# - Example output: /var/www/mrt/map/2025/07/30/map_2025_07_30.bin

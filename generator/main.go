@@ -20,8 +20,8 @@ type Config struct {
 
 // Collector configuration for MRT
 type Collector struct {
-	Master4URL         string `json:"master4_url"`
-	Master6URL         string `json:"master6_url"`
+	IPv4MRTDumpURL     string `json:"ipv4_mrt_dump_url"`
+	IPv6MRTDumpURL     string `json:"ipv6_mrt_dump_url"`
 	Username           string `json:"username"`
 	Password           string `json:"password"`
 	InsecureSkipVerify bool   `json:"insecure_skip_verify"`
@@ -36,7 +36,11 @@ type API struct {
 }
 
 var (
-	configFile = flag.String("config", "config.json", "Path to config file")
+	configFile     = flag.String("config", "config.json", "Path to config file")
+	outputFile     = flag.String("output_file", "", "Force output file path")
+	ipv4MRTDumpURL = flag.String("ipv4_mrt_dump_url", "", "Force MRT Dump IPv4 URL")
+	ipv6MRTDumpURL = flag.String("ipv6_mrt_dump_url", "", "Force MRT Dump IPv6 URL")
+	disableAPI     = flag.Bool("disable_api", false, "Disable API server mode (only generate map without serving API)")
 )
 
 func loadConfig(path string) (*Config, error) {
@@ -62,12 +66,29 @@ func main() {
 		log.Fatalf("Warning: Failed to load config file: %v\n", err)
 	}
 
-	// Override with environment variables, higher priority than config file
+	// Overwrite with environment variables, higher priority than config file
 	if envUser := os.Getenv("MRT_BASIC_AUTH_USER"); envUser != "" {
 		config.MRTCollector.Username = envUser
 	}
 	if envPass := os.Getenv("MRT_BASIC_AUTH_PASSWORD"); envPass != "" {
 		config.MRTCollector.Password = envPass
+	}
+
+	if *outputFile != "" {
+		log.Printf("Overriding output file path with: %s\n", *outputFile)
+		config.OutputFile = *outputFile
+	}
+	if *ipv4MRTDumpURL != "" {
+		log.Printf("Overriding IPv4 MRT Dump URL with: %s\n", *ipv4MRTDumpURL)
+		config.MRTCollector.IPv4MRTDumpURL = *ipv4MRTDumpURL
+	}
+	if *ipv6MRTDumpURL != "" {
+		log.Printf("Overriding IPv6 MRT Dump URL with: %s\n", *ipv6MRTDumpURL)
+		config.MRTCollector.IPv6MRTDumpURL = *ipv6MRTDumpURL
+	}
+	if *disableAPI {
+		log.Println("API server mode disabled via command line flag")
+		config.API.Enabled = false
 	}
 
 	server := NewServer(config)

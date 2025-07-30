@@ -73,7 +73,7 @@ func NewServer(config *Config) *Server {
 }
 
 func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
-	urls := []string{config.MRTCollector.Master4URL, config.MRTCollector.Master6URL}
+	urls := []string{config.MRTCollector.IPv4MRTDumpURL, config.MRTCollector.IPv6MRTDumpURL}
 	results := make([][]byte, 0, len(urls))
 	errCh := make(chan error, len(urls))
 	dataCh := make(chan []byte, len(urls))

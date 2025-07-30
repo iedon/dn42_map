@@ -3,8 +3,8 @@
     "output_file": "./map.bin",
     "post_generation_command": "",
     "mrt_collector": {
-        "master4_url": "https://mrt.iedon.net/master4_latest.mrt.bz2",
-        "master6_url": "https://mrt.iedon.net/master6_latest.mrt.bz2",
+        "ipv4_mrt_dump_url": "https://mrt.iedon.net/master4_latest.mrt.bz2",
+        "ipv6_mrt_dump_url": "https://mrt.iedon.net/master6_latest.mrt.bz2",
         "username": "CanAlsoSpecifyInEnv",
         "password": "CanAlsoSpecifyInEnv",
         "insecure_skip_verify": true,

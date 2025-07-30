@@ -274,7 +274,7 @@ function renderLabels(ctx, eligibleNodes, hoveredNode) {
     ctx.fillText(
       node.label,
       node.x,
-      node.y + node.size + node.labelFontSizeCalculated / 2 + 2
+      node.y + node.size + node.labelFontSizeCalculated / 2 + 4
     );
   }
 }

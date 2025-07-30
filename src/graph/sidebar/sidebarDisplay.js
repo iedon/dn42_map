@@ -139,9 +139,3 @@ window.toggleRanking = () => {
 };
 
 window.sortTableByColumn = sortTableByColumn;
-
-// Placeholder function for map version selection
-window.showMapVersions = () => {
-  alert("Map version selection feature coming soon!");
-  // TODO: Implement map version/time machine functionality
-};

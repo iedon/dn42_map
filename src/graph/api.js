@@ -6,8 +6,8 @@ import { parse } from "protobufjs";
 /**
  * Fetches graph data from the server.
  */
-export async function getGraphData() {
-  const response = await fetch("map.bin");
+export async function getGraphData(url) {
+  const response = await fetch(url || "map.bin");
 
   if (!response.ok) throw new Error("Failed to fetch graph data.");
 
@@ -62,5 +62,22 @@ export async function getMyIpData() {
   if (!data.ip) {
     throw new Error("Network response error.");
   }
+  return data;
+}
+
+/**
+ * Fetches available map versions from the server.
+ */
+export async function getMapVersions() {
+  const response = await fetch(`${constants.dn42.timeMachineBinUrlPrefix}/index.json`, {
+    headers: {
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    }
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch map versions.");
+
+  const data = await response.json();
   return data;
 }

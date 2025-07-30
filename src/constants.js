@@ -70,5 +70,6 @@ export const constants = {
       : "https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/",
     routeGraphInitiateAsn: 4242422189,
     toolboxUrl: "https://dn42.g-load.eu/toolbox/",
+    timeMachineBinUrlPrefix: "https://mrt.iedon.net/map",
   },
 };

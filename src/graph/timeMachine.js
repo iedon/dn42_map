@@ -122,8 +122,8 @@ function parseFileDate(filename) {
 /**
  * Builds map URL from components
  */
-function buildMapUrl(year, month, day, filename) {
-  return `${constants.dn42.timeMachineBinUrlPrefix}/${year}/${month}/${day}/${filename}`;
+function buildMapUrl(year, month, filename) {
+  return `${constants.dn42.timeMachineBinUrlPrefix}/${year}/${month}/${filename}`;
 }
 
 /**
@@ -214,7 +214,7 @@ async function renderMapVersions(data) {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
         </svg>
-        <p>No network snapshots available.</p>
+        <p>No map snapshots available.</p>
         <p>The time machine service may be temporarily unavailable.</p>
       </div>
     `;
@@ -304,8 +304,7 @@ function showMonthDetails(year, month) {
 
   for (const filename of files) {
     const readableDate = formatReadableDate(filename);
-    const day = filename.match(/map_\d{4}_\d{2}_(\d{2})\.bin/)?.[1] || "";
-    const mapUrl = buildMapUrl(year, month, day, filename);
+    const mapUrl = buildMapUrl(year, month, filename);
 
     html += `
       <div class="file-card"

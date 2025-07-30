@@ -17,7 +17,7 @@
     "devDependencies": {
         "html-minifier": "^4.0.0",
         "inline-source": "^8.0.3",
-        "rollup": "^4.45.1",
+        "rollup": "^4.46.2",
         "@rollup/plugin-terser": "^0.4.4",
         "@rollup/plugin-strip": "^3.0.4",
         "@rollup/plugin-commonjs": "^28.0.6",

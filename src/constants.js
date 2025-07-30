@@ -24,7 +24,8 @@ export const constants = {
       colorCurrent: "red",
       colorLinked: "#667dfd",
       labelColor: "#fff",
-      labelFontSizePx: 6,
+      labelFontSizePx: 7,
+      labelFontSizeMaxPx: 13,
       labelFontFamily: "sans-serif",
       labelCulling: {
         baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels

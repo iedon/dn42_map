@@ -12,7 +12,7 @@ import {
   checkSearchInputEventListener,
   closeSideBarEventListener,
   searchNodeEventListener,
-} from "./sidebar";
+} from "./sidebar/index.js";
 import { forceCenter } from "d3-force";
 import { select } from "d3-selection";
 

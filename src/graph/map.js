@@ -3,7 +3,7 @@
 import { constants } from "../constants";
 import { ipv4FromUint32, ipv6FromQuard32 } from "../utils/ipUtil";
 import { scaleSqrt } from "../utils/scaleUtil";
-import { initSidebar } from "./sidebar";
+import { initSidebar } from "./sidebar/index.js";
 import { initEvent } from "./event";
 import { mapDrawer } from "./drawer";
 import { select } from "d3-selection";
@@ -122,12 +122,12 @@ function preprocessDataset(data, isDump = false) {
 
     if (!isDump)
       node.labelFontSizeCalculated = scaleSqrt(
-        [0, 12],
+        [0, constants.render.node.labelFontSizeMaxPx],
         [
           constants.render.node.labelFontSizePx / 4,
           constants.render.node.labelFontSizePx,
         ],
-        12 - node.label.length * 0.5
+        constants.render.node.labelFontSizeMaxPx - node.label.length * 0.5
       );
 
     if (!isDump)

@@ -7,7 +7,7 @@ import {
   toggleSearchContainer,
   tweakDisableGesture,
   showMyDN42Ip,
-} from "./graph/sidebar";
+} from "./graph/sidebar/index.js";
 
 let loadingOverlay = null;
 let loadingSpinner = null;

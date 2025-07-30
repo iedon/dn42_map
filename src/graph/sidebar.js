@@ -2,6 +2,7 @@
 
 import { constants } from "../constants";
 import { getMyIpData, getWhoisData } from "./api";
+import { debounce } from "../utils/ctrlUtil";
 import { select } from "d3-selection";
 import { zoomIdentity } from "d3-zoom";
 
@@ -18,6 +19,62 @@ export function toggleSearchContainer(onOff = false) {
   document.getElementById("search-container").style.display = onOff ? "block" : "none";
 }
 
+// Create search input with styling
+const createSearchInput = (placeholder, onInput) => {
+  return `
+    <div class="table-search-container">
+      <input type="text" 
+             id="table-search" 
+             placeholder="${placeholder}" 
+             oninput="${onInput}">
+    </div>
+  `;
+};
+
+// Filter table rows based on search query
+const filterTableRows = (query, tableSelector, searchColumns = []) => {
+  const table = document.querySelector(tableSelector);
+  if (!table) return;
+  
+  const tbody = table.querySelector('tbody');
+  const rows = tbody.querySelectorAll('tr');
+  const searchTerm = query.toLowerCase().trim();
+  
+  if (!searchTerm) {
+    // Show all rows if search is empty
+    rows.forEach(row => row.style.display = '');
+    return;
+  }
+  
+  rows.forEach(row => {
+    let shouldShow = false;
+    
+    // Search in specified columns or all columns if none specified
+    const cellsToSearch = searchColumns.length > 0 
+      ? searchColumns.map(index => row.cells[index]).filter(cell => cell)
+      : Array.from(row.cells);
+    
+    for (const cell of cellsToSearch) {
+      const cellText = cell.textContent.toLowerCase();
+      if (cellText.includes(searchTerm)) {
+        shouldShow = true;
+        break;
+      }
+    }
+    
+    row.style.display = shouldShow ? '' : 'none';
+  });
+};
+
+// Debounced search functions
+const debouncedRankingSearch = debounce((query) => {
+  filterTableRows(query, '.ranking-table', [1, 2]); // Search ASN and Name columns
+}, 150);
+
+const debouncedNeighborsSearch = debounce((query) => {
+  filterTableRows(query, '.neighbors-table', [0, 1]); // Search ASN and Name columns
+}, 150);
+
 // Display sidebar with node details and whois information
 const whoisCache = {};
 export async function showSidebar(node) {
@@ -29,9 +86,15 @@ export async function showSidebar(node) {
   // Showing ranking
   if (!node) {
     document.getElementById("sidebar-title").innerText = "Ranking";
-    sidebarContent.innerHTML = `<div class="whois"><table class="sortable"><thead><tr><th class="key rank" onclick="javascript:window.sortTableByColumn(0,'number')">Rank</th><th class="key asn" onclick="javascript:window.sortTableByColumn(1,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(2)">Name</th><th class="key index" onclick="javascript:window.sortTableByColumn(3,'number')">Index</th></tr></thead><tbody>${map.nodes.sort((a, b) => a.centrality.ranking - b.centrality.ranking).map((node, i) => `<tr ${onclick(node.asn)}><td class="rank">${i + 1}</td><td class="asn">${node.asn}</td><td class="name">${node.label || "-"}</td><td class="index">${node.centrality.index}</td></tr>`).join("")}</tbody></table></div>`;
+    const searchInput = createSearchInput("Search by ASN or Name...", "window.searchRankingTable(this.value)");
+    const tableHtml = `<div class="whois"><table class="sortable ranking-table"><thead><tr><th class="key rank" onclick="javascript:window.sortTableByColumn(0,'number')">Rank</th><th class="key asn" onclick="javascript:window.sortTableByColumn(1,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(2)">Name</th><th class="key index" onclick="javascript:window.sortTableByColumn(3,'number')">Index</th></tr></thead><tbody>${map.nodes.sort((a, b) => a.centrality.ranking - b.centrality.ranking).map((node, i) => `<tr ${onclick(node.asn)}><td class="rank">${i + 1}</td><td class="asn">${node.asn}</td><td class="name">${node.label || "-"}</td><td class="index">${node.centrality.index}</td></tr>`).join("")}</tbody></table></div>`;
+    
+    sidebarContent.innerHTML = searchInput + tableHtml;
     sidebar.style.left = "0";
     sidebar.scrollTop = 0;
+
+    // Set up search functionality
+    window.searchRankingTable = debouncedRankingSearch;
 
     currentSortColumn = -1;
     window.sortTableByColumn(0, "number"); // Sort by rank initially
@@ -41,7 +104,9 @@ export async function showSidebar(node) {
   document.getElementById("sidebar-title").innerText = node.desc;
   const routes = `<p class="emphasized">Routes (${node.routes.length})</p><div class="whois"><table><tbody>${node.routes.map(route =>`<tr><td class="center">${route}</td><td class="right"><a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank"}>Registry</a>&nbsp;&nbsp;<a href="${constants.dn42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${constants.dn42.routeGraphInitiateAsn}" target="_blank"}>Graph</a>&nbsp;&nbsp;<a href="${constants.dn42.queryRoutesUrl}${route}" target="_blank"}>Show</a></td></tr>`).join("")}</tbody></table></div>`;
 
-  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p><div class="whois"><table class="sortable"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✔" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✔" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  const neighborsSearchInput = createSearchInput("Search neighbors by ASN or Name...", "window.searchNeighborsTable(this.value)");
+  const neighborsTable = `<div class="whois"><table class="sortable neighbors-table"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✔" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✔" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  const neighbors = `<p class="emphasized">Neighbors (${node.peers.size})</p>${neighborsSearchInput}${neighborsTable}`;
 
   const renderCentralityCard = () => `<div class="centrality"><div class="param"><div>Betweenness <strong>${node.centrality.betweenness.toFixed(5)}</strong></div><div>Closeness <strong>${node.centrality.closeness.toFixed(5)}</strong></div><div>Degree <strong>${node.centrality.degree}</strong></div></div><div class="index"><span>Map.dn42 Index</span><strong>${node.centrality.index}</strong></div><div class="rank"><span>Rank</span><strong># ${node.centrality.ranking}</strong></div></div>`;
 
@@ -74,7 +139,13 @@ export async function showSidebar(node) {
       .join("");
     remarks += "</div>";
     const proceed = prefix + `<div class="whois"><table><tbody>${whoisRows}</tbody></table>${remarks}</div>`;
-    const output = header + proceed + routes + neighbors;
+    
+    // Regenerate neighbors with search functionality for caching
+    const neighborsSearchInput = createSearchInput("Search neighbors by ASN or Name...", "window.searchNeighborsTable(this.value)");
+    const neighborsTable = `<div class="whois"><table class="sortable neighbors-table"><thead><tr><th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th><th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th><th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th><th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th></tr></thead><tbody>${[...node.peers].map(peerAsn => `<tr ${onclick(peerAsn)}><td class="asn">${peerAsn}</td><td class="name">${map.nodeMap.get(peerAsn.toString())?.label || "-"}</td><td class="to">${map.linkMap.has(`${peerAsn}_${node.asn}`) ? "✔" : ""}</td><td class="from">${map.linkMap.has(`${node.asn}_${peerAsn}`) ? "✔" : ""}</td></tr>`).join("")}</tbody></table></div>`;
+    const neighborsWithSearch = `<p class="emphasized">Neighbors (${node.peers.size})</p>${neighborsSearchInput}${neighborsTable}`;
+    
+    const output = header + proceed + routes + neighborsWithSearch;
     whoisCache[asn] = output;
     return output;
   };
@@ -87,15 +158,25 @@ export async function showSidebar(node) {
   if (!cache) {
     sidebarContent.innerHTML = header + "<p>Querying whois database...</p>" + routes + neighbors;
     sidebar.scrollTop = 0;
+    
+    // Set up search functionality for neighbors table
+    window.searchNeighborsTable = debouncedNeighborsSearch;
+    
     try {
       sidebarContent.innerHTML = updateWithWhois(await getWhoisData(node.asn), node.asn);
+      // Re-setup search functionality after content update
+      window.searchNeighborsTable = debouncedNeighborsSearch;
     } catch (error) {
       console.error("Error querying whois API:", error);
       sidebarContent.innerHTML = header + "<p>Error querying whois API.</p>" + routes + neighbors;
+      // Re-setup search functionality after error content update
+      window.searchNeighborsTable = debouncedNeighborsSearch;
     }
   } else {
     sidebarContent.innerHTML = cache;
     sidebar.scrollTop = 0;
+    // Set up search functionality for cached content
+    window.searchNeighborsTable = debouncedNeighborsSearch;
   }
   currentSortColumn = -1;
   window.sortTableByColumn(0, "number"); // Sort by ASN initially

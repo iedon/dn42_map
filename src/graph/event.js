@@ -1,6 +1,7 @@
 // src/graph/event.js
 
 import { constants } from "../constants";
+import { throttle } from "../utils/ctrlUtil";
 import {
   showTooltip,
   hideTooltip,
@@ -16,20 +17,6 @@ import { forceCenter } from "d3-force";
 import { select } from "d3-selection";
 
 let map, focusingNode, draggingNode, showingTooltip, pointerIsDown;
-
-// Throttle utility function
-function throttle(func, limit) {
-  let inThrottle;
-  return function () {
-    const args = arguments;
-    const context = this;
-    if (!inThrottle) {
-      func.apply(context, args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
-}
 
 export function initEvent(_map) {
   map = _map;

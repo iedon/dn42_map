@@ -1,4 +1,4 @@
 # DN42 Map Archive Crontab
 # Archive daily map at 3am and index 3:01am
-0 3 * * * mkdir -p /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d) && cp /dev/shm/mapdn42.bin /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/$(date +\%d)/map_$(date +\%Y_\%m_\%d).bin
+0 3 * * * mkdir -p /var/www/mrt/map/$(date +\%Y)/$(date +\%m) && cp /dev/shm/mapdn42.bin /var/www/mrt/map/$(date +\%Y)/$(date +\%m)/map_$(date +\%Y-\%m-\%d).bin > /dev/null 2>&1
 1 3 * * * /data/mapdn42/generate_archive_index.sh /var/www/mrt/map /var/www/mrt/map/index.json > /dev/null 2>&1

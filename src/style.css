@@ -1,9 +1,16 @@
+:root {
+  --sans-font: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
+    "Nimbus Sans L", Roboto, Noto, "Segoe UI", Arial, Helvetica,
+    "Helvetica Neue", sans-serif;
+  --mono-font: Consolas, Menlo, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+}
+
 body {
   margin: 0;
   overflow: hidden;
   background-color: #333;
   color: #e0e0e0;
-  font-family: "Inter", sans-serif;
+  font-family: var(--sans-font);
 }
 
 /* Loading overlay */
@@ -490,7 +497,7 @@ button:hover {
 .whois .remarks p {
   line-height: 1em;
   font-size: 12px;
-  font-family: "Courier New", Courier, monospace;
+  font-family: var(--mono-font);
   text-align: center;
   padding: 0;
   margin: 0;
@@ -514,6 +521,11 @@ button:hover {
   font-size: 12px;
   text-align: left;
   overflow-wrap: break-word;
+}
+
+.whois td.mono {
+  font-family: var(--mono-font);
+  color: #ff005d;
 }
 
 .whois th {
@@ -934,7 +946,7 @@ button:hover {
 .file-name {
   color: #999;
   font-size: 13px;
-  font-family: "Courier New", monospace;
+  font-family: var(--mono-font);
 }
 
 /* Error and Loading States */

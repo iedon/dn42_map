@@ -135,29 +135,55 @@ function preprocessDataset(data, isDump = false) {
     if (!isDump)
       node.labelFontFamilyBold = `bold ${node.labelFontFamilyNormal}`;
 
-    const parsed = [];
-    node.routes?.forEach((route) => {
-      const length = route.length;
-      // Check the oneof fields: either "ipv4" or "ipv6" is set.
-      if (route.ipv4 != null) {
-        // route.ipv4 is a 32-bit number; convert it to dotted-quad notation.
-        const ipStr = ipv4FromUint32(route.ipv4);
-        parsed.push(`${ipStr}/${length}`);
-      } else if (route.ipv6 != null) {
-        const ipStr = ipv6FromQuard32(
-          route.ipv6.high_h32,
-          route.ipv6.high_l32,
-          route.ipv6.low_h32,
-          route.ipv6.low_l32
-        );
-        parsed.push(`${ipStr}/${length}`);
-      } else {
-        console.warn(
-          `[preprocess] Unknown or empty IP route for AS${node.asn}, skipped.`
-        );
+    if (!node.routes?.length) {
+      node.routes = [];
+    } else {
+      // Pre-allocate arrays with estimated capacity
+      const ipv4Routes = [];
+      const ipv6Routes = [];
+
+      // Parse and categorize routes
+      for (let i = 0; i < node.routes.length; i++) {
+        const route = node.routes[i];
+        const length = route.length;
+
+        if (route.ipv4 != null) {
+          const ipStr = ipv4FromUint32(route.ipv4);
+          ipv4Routes.push([length, `${ipStr}/${length}`]);
+        } else if (route.ipv6 != null) {
+          const ipStr = ipv6FromQuard32(
+            route.ipv6.high_h32,
+            route.ipv6.high_l32,
+            route.ipv6.low_h32,
+            route.ipv6.low_l32
+          );
+          ipv6Routes.push([length, `${ipStr}/${length}`]);
+        } else {
+          console.warn(
+            `[preprocess] Unknown or empty IP route for AS${node.asn}, skipped.`
+          );
+        }
       }
-    });
-    node.routes = parsed;
+
+      // Sort by length (first element of tuple)
+      ipv4Routes.sort((a, b) => a[0] - b[0]);
+      ipv6Routes.sort((a, b) => a[0] - b[0]);
+
+      // Build final array directly without intermediate mapping
+      const totalLength = ipv4Routes.length + ipv6Routes.length;
+      node.routes = new Array(totalLength);
+      let idx = 0;
+
+      // Copy IPv4 routes
+      for (let i = 0; i < ipv4Routes.length; i++) {
+        node.routes[idx++] = ipv4Routes[i][1];
+      }
+
+      // Copy IPv6 routes
+      for (let i = 0; i < ipv6Routes.length; i++) {
+        node.routes[idx++] = ipv6Routes[i][1];
+      }
+    }
 
     node.centrality.index = node.centrality.index || 0;
     node.centrality.degree = node.centrality.degree || 0;

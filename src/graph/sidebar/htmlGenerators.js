@@ -25,7 +25,7 @@ export const generateCentralityCard = (node) => {
 export const generateRoutesTable = (node) => {
   const routeRows = node.routes.map(route => `
     <tr>
-      <td class="center">${route}</td>
+      <td class="mono">${route}</td>
       <td class="right">
         <a href="${constants.dn42.explorerUrl}${route.replace("/", "_")}" target="_blank">Registry</a>&nbsp;&nbsp;
         <a href="${constants.dn42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${constants.dn42.routeGraphInitiateAsn}" target="_blank">Graph</a>&nbsp;&nbsp;

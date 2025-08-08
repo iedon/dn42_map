@@ -13,7 +13,8 @@ export const constants = {
     canvas: {
       initialScale: 1.45,
       backgroundColor: "#333",
-      viewportMargin: 100, // Extra margin for smooth viewport culling transitions
+      // viewportMargin: 100,
+      viewportMargin: 0, // Extra margin for smooth viewport culling transitions
     },
     node: {
       minSize: 3,
@@ -26,10 +27,10 @@ export const constants = {
       labelColor: "#fff",
       labelFontSizePx: 7,
       labelFontSizeMaxPx: 13,
-      labelFontFamily: "sans-serif",
+      labelFontFamily: "-apple-system,BlinkMacSystemFont,\"Avenir Next\",Avenir,\"Nimbus Sans L\",Roboto,Noto,\"Segoe UI\",Arial,Helvetica,\"Helvetica Neue\",sans-serif",
       labelCulling: {
         baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels
-        highZoomThreshold: 1.2, // Zoom level to show all labels in viewport
+        highZoomThreshold: 2.0, // Zoom level to show all labels in viewport
         maxLabelsInView: 100, // Maximum number of labels to render at once
         importanceThresholdRange: [500, 50], // Importance score range for medium zoom levels
       },
@@ -54,7 +55,7 @@ export const constants = {
       ? "https://wiki.dn42/"
       : "https://dn42.dev/",
     routeGraphsUrl: window.location.href.includes(".dn42")
-      ? "https://routegraphs.highdef.dn42/"
+      ? "http://routegraphs.highdef.dn42/"
       : "https://routegraphs.highdef.network/",
     peerFinderUrl: "https://dn42.us/peers/",
     myIpUrl: `${location.protocol}//map.dn42/myip/`,

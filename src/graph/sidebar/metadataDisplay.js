@@ -55,7 +55,7 @@ export function showMetadata(mrtDumpDate) {
 
 export async function showMyDN42Ip() {
   try {
-    if (constants.dn42.accessingFromDn42) {
+    if (true) {
       const myip = document.getElementById("myip");
       const data = await getMyIpData();
       let output = "";
@@ -66,15 +66,15 @@ export async function showMyDN42Ip() {
         }"/>&nbsp;&nbsp;`;
       }
       if (data.ip) {
-        output += `IP&nbsp;&nbsp;<a href="${constants.dn42.myIpUrl}" target="_blank">${data.ip}</a>&nbsp;`;
+        output += `<a href="${constants.dn42.myIpUrl}" target="_blank">${data.ip}</a>&nbsp;/&nbsp;`;
+      }
+      if (data.netname) {
+        output += `${data.netname}&nbsp;`;
       }
       if (data.origin) {
         output += `(<a onclick="javascript:window.navigateToNode(${Number(
           data.origin.replace("AS", "")
         )},true)">${data.origin}</a>)`;
-      }
-      if (data.netname) {
-        output += `&nbsp;|&nbsp;from&nbsp;${data.netname}`;
       }
 
       myip.innerHTML = output;

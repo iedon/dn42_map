@@ -55,7 +55,7 @@ export function showMetadata(mrtDumpDate) {
 
 export async function showMyDN42Ip() {
   try {
-    if (true) {
+    if (constants.dn42.accessingFromDn42) {
       const myip = document.getElementById("myip");
       const data = await getMyIpData();
       let output = "";

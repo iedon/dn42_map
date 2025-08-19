@@ -94,6 +94,12 @@ func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph
 		for i := range len(path) - 1 {
 			src := path[i]
 			dst := path[i+1]
+
+			// Skip self-loops (this case happens when AS prepends itself multiple times)
+			if src == dst {
+				continue
+			}
+
 			if srcIdx, ok := asnToIndex[src]; ok {
 				if dstIdx, ok := asnToIndex[dst]; ok {
 					linkKey := getLinkKey(srcIdx, dstIdx)

@@ -12,12 +12,12 @@
     "license": "GPL-3.0-only",
     "dependencies": {
         "d3": "^7.9.0",
-        "protobufjs": "^7.5.3"
+        "protobufjs": "^7.5.4"
     },
     "devDependencies": {
         "html-minifier": "^4.0.0",
         "inline-source": "^8.0.3",
-        "rollup": "^4.46.2",
+        "rollup": "^4.50.1",
         "@rollup/plugin-terser": "^0.4.4",
         "@rollup/plugin-strip": "^3.0.4",
         "@rollup/plugin-commonjs": "^28.0.6",

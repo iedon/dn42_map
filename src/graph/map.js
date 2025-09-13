@@ -107,6 +107,9 @@ function preprocessDataset(data, isDump = false) {
 
   // Setup peers and fast lookup map for nodes
   nodes.forEach((node) => {
+    // If ASN is missing or zero, set to default 0
+    node.asn = node.asn || 0;
+
     node.label = node.desc
       .replace("-DN42", "")
       .replace("-MNT", "")

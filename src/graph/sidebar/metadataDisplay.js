@@ -19,7 +19,7 @@ export function showMetadata(mrtDumpDate) {
       ${createIconButton(constants.dn42.homeUrl, "DN42 Home", "dn42.svg")}
       ${createIconButton(
         constants.dn42.peerFinderUrl,
-        "DN42 Ping Finder",
+        "DN42 Peer Finder",
         "peerfinder.svg"
       )}
       ${createIconButton(

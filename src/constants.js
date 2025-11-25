@@ -18,20 +18,20 @@ export const constants = {
     },
     node: {
       minSize: 3,
-      maxSize: 15,
+      maxSize: 16,
       scaleSqrtDomain: [1500, 10000],
-      scaleSqrtRange: [1, 15],
+      scaleSqrtRange: [1, 16],
       colorDefault: "orange",
       colorCurrent: "red",
       colorLinked: "#667dfd",
       labelColor: "#fff",
       labelFontSizePx: 7,
-      labelFontSizeMaxPx: 13,
-      labelFontFamily: "-apple-system,BlinkMacSystemFont,\"Avenir Next\",Avenir,\"Nimbus Sans L\",Roboto,Noto,\"Segoe UI\",Arial,Helvetica,\"Helvetica Neue\",sans-serif",
+      labelFontSizeMaxPx: 14,
+      labelFontFamily: "-apple-system,Roboto,Noto,\"Segoe UI\",Arial,sans-serif",
       labelCulling: {
         baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels
         highZoomThreshold: 2.0, // Zoom level to show all labels in viewport
-        maxLabelsInView: 100, // Maximum number of labels to render at once
+        maxLabelsInView: 80, // Maximum number of labels to render at once
         importanceThresholdRange: [500, 50], // Importance score range for medium zoom levels
       },
       maxFPS: 75,
@@ -53,7 +53,7 @@ export const constants = {
       : "https://explorer.burble.com/?#/",
     homeUrl: window.location.href.includes(".dn42")
       ? "https://wiki.dn42/"
-      : "https://dn42.dev/",
+      : "https://dn42.jp/",
     routeGraphsUrl: window.location.href.includes(".dn42")
       ? "http://routegraphs.highdef.dn42/"
       : "https://routegraphs.highdef.network/",
@@ -63,12 +63,10 @@ export const constants = {
     // rawJsonApiUrl: window.location.href.includes(".dn42")
     //   ? "https://map.dn42/map?type=json"
     //   : "https://api.iedon.com/dn42/map?type=json",
-    rawJsonApiUrl: window.location.href.includes(".dn42")
-      ? "https://wiki.dn42/internal/Internal-Services#map-dn42-api-services"
-      : "https://wiki.dn42.dev/internal/Internal-Services#map-dn42-api-services",
+    rawJsonApiUrl: "https://iedon.net/post/4",
     queryRoutesUrl: window.location.href.includes(".dn42")
-      ? "https://lg.iedon.dn42/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/"
-      : "https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin/",
+      ? "https://lg.iedon.dn42/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin+au-syd/"
+      : "https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin+au-syd/",
     routeGraphInitiateAsn: 4242422189,
     toolboxUrl: "https://dn42.g-load.eu/toolbox/",
     timeMachineBinUrlPrefix: "https://mrt.iedon.net/map",

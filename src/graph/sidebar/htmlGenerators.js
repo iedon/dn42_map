@@ -61,8 +61,8 @@ export const generateNeighborsTable = (node, map, searchInput) => {
       <tr>
         <th class="key asn" onclick="javascript:window.sortTableByColumn(0,'number')">ASN</th>
         <th class="key name" onclick="javascript:window.sortTableByColumn(1)">Name</th>
-        <th class="key to" onclick="javascript:window.sortTableByColumn(2)">To</th>
-        <th class="key from" onclick="javascript:window.sortTableByColumn(3)">From</th>
+        <th class="key to" onclick="javascript:window.sortTableByColumn(2)">Sends Transit</th>
+        <th class="key from" onclick="javascript:window.sortTableByColumn(3)">Receives Transit</th>
       </tr>
     </thead>
   `;

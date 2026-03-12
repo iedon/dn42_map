@@ -205,8 +205,12 @@ function findClosestNode(x, y) {
   let minDist = Infinity;
   let closestNode = null;
   const coverage = 15;
+  const { visibleNodeAsns } = map;
 
   map.nodes.forEach((node) => {
+    // Skip nodes hidden by AF filter
+    if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) return;
+
     // Calculate distance between the mouse position
     const dist = Math.hypot(node.x - x, node.y - y);
 

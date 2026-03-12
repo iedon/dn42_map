@@ -13,7 +13,7 @@ import {
   tweakDisableGesture,
   showMyDN42Ip,
 } from "./graph/sidebar/index.js";
-import { initTimeMachine, setCurrentMapVersion } from "./graph/timeMachine.js";
+import { initTimeMachine, setCurrentMapDumpDate } from "./graph/timeMachine.js";
 
 window.onload = async function () {
   try {
@@ -30,8 +30,8 @@ window.onload = async function () {
     // Extract current map version from timestamp for tracking
     const mrtDate = new Date(data.metadata.data_timestamp * 1000);
     initTimeMachine();
-    setCurrentMapVersion(mrtDate.toLocaleString());
-    showMetadata(mrtDate.toLocaleString());
+    setCurrentMapDumpDate(mrtDate.toLocaleString());
+    showMetadata(mrtDate.toLocaleString(), data.metadata.version || 0);
     toggleSearchContainer(true);
 
     initMap(
@@ -42,7 +42,7 @@ window.onload = async function () {
       finishLoading
     );
   } catch (error) {
-    console.error("❌ Error initializing the graph: ", error);
-    alert(`Error initializing the graph.\n${error}`);
+    console.error("Error initializing the graph: ", error);
+    setLoadingState("fetching", error.message || String(error));
   }
 };

@@ -66,7 +66,7 @@ export const mapDrawer = (map) => {
   
   lastFrameTime = now;
 
-  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode } = map;
+  const { canvas, ctx, transform, deduplicatedLinks, nodes, hoveredNode, afFilter, visibleNodeAsns } = map;
 
   // Setup viewport and zoom parameters
   const zoomLevel = transform.k;
@@ -81,13 +81,14 @@ export const mapDrawer = (map) => {
   ctx.scale(transform.k, transform.k);
 
   // Render pipeline: links -> nodes -> labels
-  renderLinks(ctx, deduplicatedLinks, hoveredNode, viewport);
+  renderLinks(ctx, deduplicatedLinks, hoveredNode, viewport, afFilter);
   const eligibleLabelNodes = renderNodes(
     ctx,
     nodes,
     hoveredNode,
     viewport,
-    zoomLevel
+    zoomLevel,
+    visibleNodeAsns
   );
   renderLabels(ctx, eligibleLabelNodes, hoveredNode);
 
@@ -97,7 +98,7 @@ export const mapDrawer = (map) => {
 /**
  * Render network links with hover emphasis
  */
-function renderLinks(ctx, links, hoveredNode, viewport) {
+function renderLinks(ctx, links, hoveredNode, viewport, afFilter) {
   const emphasizedLinks = [];
 
   // Set default link style
@@ -106,6 +107,7 @@ function renderLinks(ctx, links, hoveredNode, viewport) {
 
   // First pass: render normal links and collect emphasized ones
   for (const link of links) {
+    if (afFilter && !(link.af & afFilter)) continue;
     if (!isLinkVisible(link, viewport)) continue;
 
     if (
@@ -148,18 +150,19 @@ function drawLink(ctx, link) {
 /**
  * Render nodes and collect eligible label nodes
  */
-function renderNodes(ctx, nodes, hoveredNode, viewport, zoomLevel) {
+function renderNodes(ctx, nodes, hoveredNode, viewport, zoomLevel, visibleNodeAsns) {
   const eligibleLabelNodes = [];
 
   // Pre-filter nodes for label rendering
   if (zoomLevel >= constants.render.node.labelCulling.baseZoomThreshold) {
     eligibleLabelNodes.push(
-      ...getEligibleLabelNodes(nodes, hoveredNode, viewport, zoomLevel)
+      ...getEligibleLabelNodes(nodes, hoveredNode, viewport, zoomLevel, visibleNodeAsns)
     );
   }
 
   // Render all visible nodes
   for (const node of nodes) {
+    if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue;
     if (!isInViewport(node.x, node.y, viewport, 50)) continue;
     drawNode(ctx, node, hoveredNode);
   }
@@ -170,7 +173,7 @@ function renderNodes(ctx, nodes, hoveredNode, viewport, zoomLevel) {
 /**
  * Get nodes eligible for label rendering based on zoom and importance
  */
-function getEligibleLabelNodes(nodes, hoveredNode, viewport, zoomLevel) {
+function getEligibleLabelNodes(nodes, hoveredNode, viewport, zoomLevel, visibleNodeAsns) {
   const {
     baseZoomThreshold,
     highZoomThreshold,
@@ -181,6 +184,7 @@ function getEligibleLabelNodes(nodes, hoveredNode, viewport, zoomLevel) {
   const eligible = [];
 
   for (const node of nodes) {
+    if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue;
     if (!isInViewport(node.x, node.y, viewport)) continue;
 
     const shouldShowLabel =

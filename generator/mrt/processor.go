@@ -8,9 +8,15 @@ import (
 	"sync"
 )
 
+// ASPath represents an AS path with address family info
+type ASPath struct {
+	Path []uint32
+	AF   uint32 // Bitmask: 1=IPv4, 2=IPv6
+}
+
 // Result stores the results of MRT processing
 type Result struct {
-	ASPaths    [][]uint32         // AS path list
+	ASPaths    []ASPath           // AS path list
 	Advertises map[uint32][]Route // ASN to route mapping
 	Metadata   *Metadata
 }
@@ -40,7 +46,7 @@ func NewProcessor() *Processor {
 // Process processes MRT data and returns the result
 func (p *Processor) Process(data []byte) (*Result, error) {
 	result := &Result{
-		ASPaths:    make([][]uint32, 0),
+		ASPaths:    make([]ASPath, 0),
 		Advertises: make(map[uint32][]Route),
 	}
 
@@ -279,7 +285,19 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 	// If AS path is found, add to result
 	if len(asPath) > 0 {
 		p.Lock()
-		result.ASPaths = append(result.ASPaths, asPath)
+		// AF bitmask: 1=IPv4 unicast, 2=IPv6 unicast, 4=IPv4 multicast, 8=IPv6 multicast
+		var af uint32
+		switch subType {
+		case 2, 8: // RIB_IPV4_UNICAST, RIB_IPV4_UNICAST_ADDPATH
+			af = 1 // 0001
+		case 4, 10: // RIB_IPV6_UNICAST, RIB_IPV6_UNICAST_ADDPATH
+			af = 2 // 0010
+		case 3, 9: // RIB_IPV4_MULTICAST, RIB_IPV4_MULTICAST_ADDPATH
+			af = 4 // 0100
+		case 5, 11: // RIB_IPV6_MULTICAST, RIB_IPV6_MULTICAST_ADDPATH
+			af = 8 // 1000
+		}
+		result.ASPaths = append(result.ASPaths, ASPath{Path: asPath, AF: af})
 
 		// Create route entry
 		route := Route{
@@ -333,7 +351,7 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 // MergeResults merges multiple processing results
 func MergeResults(results chan *Result) *Result {
 	merged := &Result{
-		ASPaths:    make([][]uint32, 0),
+		ASPaths:    make([]ASPath, 0),
 		Advertises: make(map[uint32][]Route),
 	}
 

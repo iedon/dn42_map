@@ -3,6 +3,7 @@
 export const constants = {
   pageTitle: "DN42 Realtime Network Map",
   binVendorMagic: "IEDON.NET",
+  mapVersion: 2,
   render: {
     pixelRatio: window.devicePixelRatio || 1,
     d3force: {

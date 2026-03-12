@@ -12,15 +12,15 @@
     "license": "GPL-3.0-only",
     "dependencies": {
         "d3": "^7.9.0",
-        "protobufjs": "^7.5.4"
+        "protobufjs": "^8.0.0"
     },
     "devDependencies": {
         "html-minifier": "^4.0.0",
         "inline-source": "^8.0.3",
-        "rollup": "^4.53.3",
-        "@rollup/plugin-terser": "^0.4.4",
+        "rollup": "^4.59.0",
+        "@rollup/plugin-terser": "^1.0.0",
         "@rollup/plugin-strip": "^3.0.4",
-        "@rollup/plugin-commonjs": "^29.0.0",
+        "@rollup/plugin-commonjs": "^29.0.2",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "rollup-plugin-copy": "^3.5.0"
     }

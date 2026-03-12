@@ -244,8 +244,8 @@ func (s *Server) generateMap() {
 	// Concurrent get ASN descriptions
 	reg := registry.NewRegistry(s.config.RegistryPath)
 	uniqueASNs := make(map[uint32]struct{})
-	for _, path := range merged.ASPaths {
-		for _, asn := range path {
+	for _, asp := range merged.ASPaths {
+		for _, asn := range asp.Path {
 			uniqueASNs[asn] = struct{}{}
 		}
 	}

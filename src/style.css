@@ -175,6 +175,20 @@ body {
     hue-rotate(23deg) brightness(104%) contrast(96%);
 }
 
+.toolbar-af-text {
+  font-size: 12px;
+  font-weight: bold;
+  color: #ce8815;
+  text-align: center;
+  line-height: 1.1;
+  user-select: none;
+  min-width: 32px;
+}
+
+.toolbar-af-text:hover {
+  color: #f0c050;
+}
+
 /* Tooltip styles for toolbar icons */
 .toolbar-icon::after {
   content: attr(data-tooltip);

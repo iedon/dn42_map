@@ -388,14 +388,14 @@ const initTimeMachine = () => {
   setupEventListeners();
 };
 
-const setCurrentMapVersion = (version) => {
+const setCurrentMapDumpDate = (version) => {
   currentMapVersion = version;
 };
 
 // Export functions
 export {
   initTimeMachine,
-  setCurrentMapVersion,
+  setCurrentMapDumpDate,
   showMapVersions,
   closeMapVersions,
   loadMapVersion,

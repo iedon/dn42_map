@@ -29,6 +29,8 @@ const map = {
   zoom: null,
   hoveredNode: null,
   transform: zoomIdentity,
+  afFilter: 0, // 0=all, 1=IPv4 only, 2=IPv6 only
+  visibleNodeAsns: null, // Cached Set of visible node ASNs for current AF filter
 };
 
 let isFirstTimeLoading,
@@ -197,7 +199,7 @@ function preprocessDataset(data, isDump = false) {
   // Convert links to use actual node object references and deduplicate
   let deduplicatedLinks = links;
   if (!isDump) {
-    const seenLinks = new Set();
+    const seenLinks = new Map();
     deduplicatedLinks = [];
 
     links.forEach((link) => {
@@ -209,7 +211,7 @@ function preprocessDataset(data, isDump = false) {
       link.target.peers.add(link.source.asn);
       linkMap.set(`${link.source.asn}_${link.target.asn}`, true);
 
-      // Deduplicate for rendering
+      // Deduplicate for rendering, OR address family bits
       const sourceAsn = link.source.asn;
       const targetAsn = link.target.asn;
       const linkKey =
@@ -218,8 +220,12 @@ function preprocessDataset(data, isDump = false) {
           : `${targetAsn}-${sourceAsn}`;
 
       if (!seenLinks.has(linkKey)) {
-        seenLinks.add(linkKey);
+        // First time seeing this link, add to deduplicated list
+        seenLinks.set(linkKey, link);
         deduplicatedLinks.push(link);
+      } else {
+        // If link already seen, update AF bitmask to include this link's AF
+        seenLinks.get(linkKey).af = (seenLinks.get(linkKey).af || 0) | (link.af || 0);
       }
     });
   }
@@ -316,6 +322,53 @@ function initSimulation() {
 //     console.error(error);
 //   }
 // };
+
+// AF bitmask: 1=IPv4 unicast, 2=IPv6 unicast, 4=IPv4 multicast, 8=IPv6 multicast
+const AF_CYCLE = [0, 1, 2, 4, 8];
+const AF_BUTTON_HTML = {
+  0: "ALL",
+  1: "IPv4",
+  2: "IPv6",
+  4: '<span style="font-size:9px;line-height:1.1">MCAST<br>IPv4</span>',
+  8: '<span style="font-size:9px;line-height:1.1">MCAST<br>IPv6</span>',
+};
+const AF_TOOLTIP = {
+  0: "Address Family Filter: All",
+  1: "Address Family Filter: IPv4 Unicast",
+  2: "Address Family Filter: IPv6 Unicast",
+  4: "Address Family Filter: IPv4 Multicast",
+  8: "Address Family Filter: IPv6 Multicast",
+};
+
+function rebuildVisibleNodeAsns() {
+  if (!map.afFilter) {
+    map.visibleNodeAsns = null;
+    return;
+  }
+  const visible = new Set();
+  for (const link of map.deduplicatedLinks) {
+    if (link.af & map.afFilter) {
+      visible.add(link.source.asn);
+      visible.add(link.target.asn);
+    }
+  }
+  map.visibleNodeAsns = visible;
+}
+
+window.cycleAfFilter = () => {
+  const currentIdx = AF_CYCLE.indexOf(map.afFilter);
+  map.afFilter = AF_CYCLE[(currentIdx + 1) % AF_CYCLE.length];
+  rebuildVisibleNodeAsns();
+  setInitialScale();
+  map.draw();
+
+  const btn = document.querySelector(".toolbar-icon[data-af-filter]");
+  if (btn) {
+    btn.innerHTML = AF_BUTTON_HTML[map.afFilter];
+    btn.setAttribute("data-tooltip", AF_TOOLTIP[map.afFilter]);
+    btn.setAttribute("aria-label", AF_TOOLTIP[map.afFilter]);
+  }
+};
 
 /**
  * Initializes the map with given data and container ID.

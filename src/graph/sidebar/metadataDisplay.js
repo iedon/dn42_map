@@ -3,7 +3,7 @@
 import { constants } from "../../constants.js";
 import { getMyIpData } from "../api.js";
 
-export function showMetadata(mrtDumpDate) {
+export function showMetadata(mrtDumpDate, mapVersion = 0) {
   const createIconButton = (href, title, iconPath, onclick = null) => {
     const clickHandler = onclick ? `onclick="${onclick}"` : "";
     const linkProps = href ? `href="${href}" target="_blank"` : "";
@@ -13,6 +13,10 @@ export function showMetadata(mrtDumpDate) {
       </a>
     `;
   };
+
+  const afFilterButton = mapVersion >= constants.mapVersion ? `
+      <a onclick="javascript:window.cycleAfFilter()" class="toolbar-icon toolbar-af-text" data-af-filter data-tooltip="Address Family Filter: All" aria-label="Address Family Filter: All">ALL</a>
+    ` : "";
 
   document.getElementById("metadata").innerHTML = `
     <div class="toolbar-icons">
@@ -49,6 +53,7 @@ export function showMetadata(mrtDumpDate) {
         "time.svg",
         "javascript:window.showMapVersions()"
       )}
+      ${afFilterButton}
     </div>
   `;
 }

@@ -11,12 +11,18 @@ import (
 	pb "github.com/iedon/dn42_map_go/proto"
 )
 
+// MapVersion is the current map binary format version.
+// Version 0: legacy (no version field, no AF on links)
+// Version 2: added address family (af) bitmask on links
+const MapVersion = 2
+
 // BuildGraph builds a Graph protobuf message from MRT processing results
 func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph {
 	graph := &pb.Graph{
 		Metadata: &pb.Metadata{
 			Vendor:             "IEDON.NET",
 			GeneratedTimestamp: uint64(time.Now().Unix()),
+			Version:            MapVersion,
 		},
 	}
 
@@ -29,8 +35,8 @@ func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph
 
 	// Collect all nodes
 	nodes := make(map[uint32]struct{})
-	for _, path := range result.ASPaths {
-		for _, asn := range path {
+	for _, asp := range result.ASPaths {
+		for _, asn := range asp.Path {
 			nodes[asn] = struct{}{}
 		}
 	}
@@ -89,11 +95,11 @@ func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph
 	}
 
 	// Add links
-	links := make(map[string]struct{})
-	for _, path := range result.ASPaths {
-		for i := range len(path) - 1 {
-			src := path[i]
-			dst := path[i+1]
+	links := make(map[string]*pb.Link)
+	for _, asp := range result.ASPaths {
+		for i := range len(asp.Path) - 1 {
+			src := asp.Path[i]
+			dst := asp.Path[i+1]
 
 			// Skip self-loops (this case happens when AS prepends itself multiple times)
 			if src == dst {
@@ -103,13 +109,17 @@ func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph
 			if srcIdx, ok := asnToIndex[src]; ok {
 				if dstIdx, ok := asnToIndex[dst]; ok {
 					linkKey := getLinkKey(srcIdx, dstIdx)
-					if _, exists := links[linkKey]; !exists {
-						graph.Links = append(graph.Links, &pb.Link{
+					if existing, exists := links[linkKey]; !exists {
+						link := &pb.Link{
 							Source: srcIdx,
 							Target: dstIdx,
-						})
+							Af:     asp.AF,
+						}
+						graph.Links = append(graph.Links, link)
 						centralityGraph.AddLink(src, dst)
-						links[linkKey] = struct{}{}
+						links[linkKey] = link
+					} else {
+						existing.Af |= asp.AF
 					}
 				}
 			}

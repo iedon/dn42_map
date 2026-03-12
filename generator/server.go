@@ -74,6 +74,12 @@ func NewServer(config *Config) *Server {
 
 func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 	urls := []string{config.MRTCollector.IPv4MRTDumpURL, config.MRTCollector.IPv6MRTDumpURL}
+	if config.MRTCollector.IPv4MulticastMRTDumpURL != "" {
+		urls = append(urls, config.MRTCollector.IPv4MulticastMRTDumpURL)
+	}
+	if config.MRTCollector.IPv6MulticastMRTDumpURL != "" {
+		urls = append(urls, config.MRTCollector.IPv6MulticastMRTDumpURL)
+	}
 	results := make([][]byte, 0, len(urls))
 	errCh := make(chan error, len(urls))
 	dataCh := make(chan []byte, len(urls))
@@ -204,7 +210,7 @@ func (s *Server) generateMap() {
 
 	// Concurrent process MRT data
 	processor := mrt.NewProcessor()
-	results := make(chan *mrt.Result, 2)
+	results := make(chan *mrt.Result, len(mrtData))
 	var wg sync.WaitGroup
 
 	for _, data := range mrtData {
@@ -228,6 +234,12 @@ func (s *Server) generateMap() {
 
 	// Merge results
 	merged := mrt.MergeResults(results)
+
+	// Check if we should skip generation on empty data
+	if s.config.DoNotGenerateOnEmpty && len(merged.ASPaths) == 0 && len(merged.Advertises) == 0 {
+		log.Println("No paths or routes found in MRT data and do_not_generate_on_empty is enabled. Skipping generation.")
+		return
+	}
 
 	// Concurrent get ASN descriptions
 	reg := registry.NewRegistry(s.config.RegistryPath)

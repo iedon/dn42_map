@@ -12,3 +12,7 @@ bun.lockb
 myip/go.sum
 myip/myip
 bun.lock
+.vscode
+.idea
+.claude
+.ai

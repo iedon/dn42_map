@@ -2,9 +2,12 @@
     "registry_path": "./dn42registry",
     "output_file": "./map.bin",
     "post_generation_command": "",
+    "do_not_generate_on_empty": true,
     "mrt_collector": {
         "ipv4_mrt_dump_url": "https://mrt.iedon.net/master4_latest.mrt.bz2",
         "ipv6_mrt_dump_url": "https://mrt.iedon.net/master6_latest.mrt.bz2",
+        "ipv4_multicast_mrt_dump_url": "https://mrt.iedon.net/multicast4_latest.mrt.bz2",
+        "ipv6_multicast_mrt_dump_url": "https://mrt.iedon.net/multicast6_latest.mrt.bz2",
         "username": "CanAlsoSpecifyInEnv",
         "password": "CanAlsoSpecifyInEnv",
         "insecure_skip_verify": true,

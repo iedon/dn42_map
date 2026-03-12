@@ -95,11 +95,19 @@ func (p *Processor) processTableDumpV2(subType uint16, data []byte, result *Resu
 		return nil
 	case 2: // RIB_IPV4_UNICAST
 		fallthrough
+	case 3: // RIB_IPV4_MULTICAST
+		fallthrough
 	case 4: // RIB_IPV6_UNICAST
+		fallthrough
+	case 5: // RIB_IPV6_MULTICAST
 		fallthrough
 	case 8: // RIB_IPV4_UNICAST_ADDPATH
 		fallthrough
+	case 9: // RIB_IPV4_MULTICAST_ADDPATH
+		fallthrough
 	case 10: // RIB_IPV6_UNICAST_ADDPATH
+		fallthrough
+	case 11: // RIB_IPV6_MULTICAST_ADDPATH
 		return p.processRIBEntry(subType, reader, result)
 	}
 
@@ -129,14 +137,14 @@ func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result
 
 	// Parse IP address
 	var ipStr string
-	if subType == 2 || subType == 8 { // IPv4
+	if subType == 2 || subType == 3 || subType == 8 || subType == 9 { // IPv4 (unicast/multicast)
 		if prefixBytes < 4 {
 			// Extend the slice in-place instead of creating a new one
 			prefix = append(prefix, make([]byte, 4-prefixBytes)...)
 		}
 		ip := net.IPv4(prefix[0], prefix[1], prefix[2], prefix[3])
 		ipStr = ip.String()
-	} else { // IPv6 (type 4, 10)
+	} else { // IPv6 (type 4, 5, 10, 11)
 		if prefixBytes < 16 {
 			// Extend the slice in-place
 			prefix = append(prefix, make([]byte, 16-prefixBytes)...)
@@ -154,7 +162,7 @@ func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result
 	// Process each entry
 	for i := uint16(0); i < entryCount; i++ {
 		// If ADDPATH type, read path identifier
-		if subType == 8 || subType == 10 {
+		if subType == 8 || subType == 9 || subType == 10 || subType == 11 {
 			var pathID uint32
 			if err := binary.Read(reader, binary.BigEndian, &pathID); err != nil {
 				return err
@@ -278,13 +286,13 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 			Length: prefixLen,
 		}
 
-		if subType == 2 || subType == 8 { // IPv4
+		if subType == 2 || subType == 3 || subType == 8 || subType == 9 { // IPv4 (unicast/multicast)
 			route.IPType = "ipv4"
 			ip := net.ParseIP(prefix).To4()
 			if ip != nil {
 				route.IPValue = binary.BigEndian.Uint32(ip)
 			}
-		} else { // IPv6 (type 4, 10)
+		} else { // IPv6 (type 4, 5, 10, 11)
 			route.IPType = "ipv6"
 			ip := net.ParseIP(prefix).To16()
 			if ip != nil {

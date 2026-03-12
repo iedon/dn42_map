@@ -11,21 +11,24 @@ import (
 
 // Config structure
 type Config struct {
-	RegistryPath          string    `json:"registry_path"`
-	OutputFile            string    `json:"output_file"`
-	PostGenerationCommand string    `json:"post_generation_command"`
-	MRTCollector          Collector `json:"mrt_collector"`
-	API                   API       `json:"api"`
+	RegistryPath           string    `json:"registry_path"`
+	OutputFile             string    `json:"output_file"`
+	PostGenerationCommand  string    `json:"post_generation_command"`
+	DoNotGenerateOnEmpty   bool      `json:"do_not_generate_on_empty"`
+	MRTCollector           Collector `json:"mrt_collector"`
+	API                    API       `json:"api"`
 }
 
 // Collector configuration for MRT
 type Collector struct {
-	IPv4MRTDumpURL     string `json:"ipv4_mrt_dump_url"`
-	IPv6MRTDumpURL     string `json:"ipv6_mrt_dump_url"`
-	Username           string `json:"username"`
-	Password           string `json:"password"`
-	InsecureSkipVerify bool   `json:"insecure_skip_verify"`
-	CustomDNSServer    string `json:"custom_dns_server"`
+	IPv4MRTDumpURL          string `json:"ipv4_mrt_dump_url"`
+	IPv6MRTDumpURL          string `json:"ipv6_mrt_dump_url"`
+	IPv4MulticastMRTDumpURL string `json:"ipv4_multicast_mrt_dump_url"`
+	IPv6MulticastMRTDumpURL string `json:"ipv6_multicast_mrt_dump_url"`
+	Username                string `json:"username"`
+	Password                string `json:"password"`
+	InsecureSkipVerify      bool   `json:"insecure_skip_verify"`
+	CustomDNSServer         string `json:"custom_dns_server"`
 }
 
 // API service configuration

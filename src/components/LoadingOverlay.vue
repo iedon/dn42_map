@@ -10,7 +10,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { LoadingState } from '@/types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   state: LoadingState
@@ -26,9 +29,9 @@ const loadingState = computed(() => props.error ? 'fetching' : props.state)
 const displayText = computed(() => {
   if (props.error) return props.error
   switch (props.state) {
-    case 'fetching': return 'Fetching'
-    case 'parsing': return 'Preprocessing DN42 Map Data'
-    case 'rendering': return 'Rendering DN42 Network Map'
+    case 'fetching': return t('loading.fetching')
+    case 'parsing': return t('loading.parsing')
+    case 'rendering': return t('loading.rendering')
   }
 })
 

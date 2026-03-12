@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node pack.js",
     "preview": "vite preview"
   },
   "author": "iedon.net",
@@ -13,11 +13,14 @@
   "dependencies": {
     "d3": "^7.9.0",
     "protobufjs": "^8.0.0",
-    "vue": "^3.5.30"
+    "vue": "^3.5.30",
+    "vue-i18n": "^11.3.0"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@vitejs/plugin-vue": "^6.0.5",
+    "html-minifier": "^4.0.0",
+    "inline-source": "^8.0.3",
     "sass-embedded": "^1.98.0",
     "typescript": "^5.9.3",
     "vite": "^8.0.0",

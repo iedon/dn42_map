@@ -1,0 +1,81 @@
+{
+  "pageTitle": "DN42 Realtime Network Map",
+  "loading": {
+    "fetching": "Fetching",
+    "parsing": "Preprocessing DN42 Map Data",
+    "rendering": "Rendering DN42 Network Map",
+    "text": "Loading..."
+  },
+  "header": {
+    "dn42Home": "DN42 Home",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "Route Graph by highdef",
+    "tools": "Tools by Kioubit",
+    "apiServices": "API Services",
+    "ranking": "All active nodes and ranking",
+    "timeMachine": "Time Machine (Date of current map: {date})",
+    "searchPlaceholder": "ASN / Name...",
+    "search": "Search"
+  },
+  "tooltip": {
+    "neighbors": "Neighbors: {count}",
+    "advertisedRoutes": "Advertised routes:"
+  },
+  "timeMachine": {
+    "title": "Time Machine",
+    "loaded": "Loaded: {date}",
+    "goToLatest": "Go to latest",
+    "back": "Back",
+    "loadingSnapshots": "Loading map snapshots...",
+    "loadFailed": "Failed to load network snapshots: {error}",
+    "serviceUnavailable": "The time machine service may be temporarily unavailable.",
+    "retry": "Retry"
+  },
+  "sidebar": {
+    "ranking": "Ranking"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Querying whois database...",
+    "whoisError": "Network issue or ASN not found.",
+    "revealExplorer": "Reveal in DN42 Registry Explorer",
+    "routes": "Routes ({count})",
+    "registry": "Registry",
+    "graph": "Graph",
+    "show": "Show",
+    "neighbors": "Neighbors ({count})",
+    "searchNeighbors": "Search neighbors by ASN or Name..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Search by ASN or Name..."
+  },
+  "centrality": {
+    "betweenness": "Betweenness",
+    "closeness": "Closeness",
+    "degree": "Degree",
+    "index": "Map.dn42 Index",
+    "rank": "Rank"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Name",
+    "sendsTransit": "Sends Transit",
+    "recvsTransit": "Recvs Transit",
+    "rank": "Rank",
+    "index": "Index"
+  },
+  "search": {
+    "notFound": "Node not found."
+  },
+  "af": {
+    "all": "ALL",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Address Family Filter: All",
+    "tooltipIpv4": "Address Family Filter: IPv4 Unicast",
+    "tooltipIpv6": "Address Family Filter: IPv6 Unicast",
+    "tooltipMcastIpv4": "Address Family Filter: IPv4 Multicast",
+    "tooltipMcastIpv6": "Address Family Filter: IPv6 Multicast"
+  }
+}

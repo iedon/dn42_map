@@ -1,0 +1,81 @@
+{
+  "pageTitle": "DN42 即時網路地圖",
+  "loading": {
+    "fetching": "取得中",
+    "parsing": "正在預處理 DN42 地圖資料",
+    "rendering": "正在渲染 DN42 網路地圖",
+    "text": "載入中..."
+  },
+  "header": {
+    "dn42Home": "DN42 首頁",
+    "peerFinder": "DN42 對等點搜尋器",
+    "routeGraph": "highdef 路由圖",
+    "tools": "Kioubit 工具",
+    "apiServices": "API 服務",
+    "ranking": "所有活躍節點和排名",
+    "timeMachine": "時光機（目前地圖日期：{date}）",
+    "searchPlaceholder": "ASN / 名稱...",
+    "search": "搜尋"
+  },
+  "tooltip": {
+    "neighbors": "鄰居：{count}",
+    "advertisedRoutes": "通告的路由："
+  },
+  "timeMachine": {
+    "title": "時光機",
+    "loaded": "已載入：{date}",
+    "goToLatest": "前往最新版本",
+    "back": "返回",
+    "loadingSnapshots": "正在載入地圖快照...",
+    "loadFailed": "載入網路快照失敗：{error}",
+    "serviceUnavailable": "時光機服務暫時無法使用。",
+    "retry": "重試"
+  },
+  "sidebar": {
+    "ranking": "排名"
+  },
+  "nodeDetail": {
+    "queryingWhois": "正在查詢 whois 資料庫...",
+    "whoisError": "網路問題或未找到 ASN。",
+    "revealExplorer": "在 DN42 註冊表瀏覽器中查看",
+    "routes": "路由 ({count})",
+    "registry": "註冊表",
+    "graph": "圖表",
+    "show": "查看",
+    "neighbors": "鄰居 ({count})",
+    "searchNeighbors": "按 ASN 或名稱搜尋鄰居..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "按 ASN 或名稱搜尋..."
+  },
+  "centrality": {
+    "betweenness": "介數中心性",
+    "closeness": "接近中心性",
+    "degree": "入出度",
+    "index": "Map.dn42 指數",
+    "rank": "排名"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "名稱",
+    "sendsTransit": "傳送中轉",
+    "recvsTransit": "接收中轉",
+    "rank": "排名",
+    "index": "指數"
+  },
+  "search": {
+    "notFound": "未找到節點。"
+  },
+  "af": {
+    "all": "全部",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "位址族過濾器：全部",
+    "tooltipIpv4": "位址族過濾器：IPv4 單播",
+    "tooltipIpv6": "位址族過濾器：IPv6 單播",
+    "tooltipMcastIpv4": "位址族過濾器：IPv4 群播",
+    "tooltipMcastIpv6": "位址族過濾器：IPv6 群播"
+  }
+}

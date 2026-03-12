@@ -1,0 +1,81 @@
+{
+  "pageTitle": "DN42 Echtzeit-Netzwerkkarte",
+  "loading": {
+    "fetching": "Abrufen",
+    "parsing": "DN42-Kartendaten vorverarbeiten",
+    "rendering": "DN42-Netzwerkkarte rendern",
+    "text": "Laden..."
+  },
+  "header": {
+    "dn42Home": "DN42 Startseite",
+    "peerFinder": "DN42 Peer-Finder",
+    "routeGraph": "Routengraph von highdef",
+    "tools": "Werkzeuge von Kioubit",
+    "apiServices": "API-Dienste",
+    "ranking": "Alle aktiven Knoten und Rangliste",
+    "timeMachine": "Zeitmaschine (Datum der aktuellen Karte: {date})",
+    "searchPlaceholder": "ASN / Name...",
+    "search": "Suchen"
+  },
+  "tooltip": {
+    "neighbors": "Nachbarn: {count}",
+    "advertisedRoutes": "Angekündigte Routen:"
+  },
+  "timeMachine": {
+    "title": "Zeitmaschine",
+    "loaded": "Geladen: {date}",
+    "goToLatest": "Zur neuesten Version",
+    "back": "Zurück",
+    "loadingSnapshots": "Karten-Snapshots laden...",
+    "loadFailed": "Fehler beim Laden der Netzwerk-Snapshots: {error}",
+    "serviceUnavailable": "Der Zeitmaschinen-Dienst ist vorübergehend nicht verfügbar.",
+    "retry": "Erneut versuchen"
+  },
+  "sidebar": {
+    "ranking": "Rangliste"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Whois-Datenbank abfragen...",
+    "whoisError": "Netzwerkproblem oder ASN nicht gefunden.",
+    "revealExplorer": "Im DN42 Registry Explorer anzeigen",
+    "routes": "Routen ({count})",
+    "registry": "Registry",
+    "graph": "Graph",
+    "show": "Anzeigen",
+    "neighbors": "Nachbarn ({count})",
+    "searchNeighbors": "Nachbarn nach ASN oder Name suchen..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Nach ASN oder Name suchen..."
+  },
+  "centrality": {
+    "betweenness": "Betweenness",
+    "closeness": "Closeness",
+    "degree": "Grad",
+    "index": "Map.dn42 Index",
+    "rank": "Rang"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Name",
+    "sendsTransit": "Sendet Transit",
+    "recvsTransit": "Empfängt Transit",
+    "rank": "Rang",
+    "index": "Index"
+  },
+  "search": {
+    "notFound": "Knoten nicht gefunden."
+  },
+  "af": {
+    "all": "ALLE",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Adressfamilienfilter: Alle",
+    "tooltipIpv4": "Adressfamilienfilter: IPv4 Unicast",
+    "tooltipIpv6": "Adressfamilienfilter: IPv6 Unicast",
+    "tooltipMcastIpv4": "Adressfamilienfilter: IPv4 Multicast",
+    "tooltipMcastIpv6": "Adressfamilienfilter: IPv6 Multicast"
+  }
+}

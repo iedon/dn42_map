@@ -1,0 +1,81 @@
+{
+  "pageTitle": "DN42 रीयलटाइम नेटवर्क मैप",
+  "loading": {
+    "fetching": "प्राप्त हो रहा है",
+    "parsing": "DN42 मैप डेटा की पूर्व-प्रक्रिया",
+    "rendering": "DN42 नेटवर्क मैप रेंडर हो रहा है",
+    "text": "लोड हो रहा है..."
+  },
+  "header": {
+    "dn42Home": "DN42 होम",
+    "peerFinder": "DN42 पीयर फाइंडर",
+    "routeGraph": "highdef द्वारा रूट ग्राफ",
+    "tools": "Kioubit द्वारा उपकरण",
+    "apiServices": "API सेवाएँ",
+    "ranking": "सभी सक्रिय नोड और रैंकिंग",
+    "timeMachine": "टाइम मशीन (वर्तमान मैप की तिथि: {date})",
+    "searchPlaceholder": "ASN / नाम...",
+    "search": "खोजें"
+  },
+  "tooltip": {
+    "neighbors": "पड़ोसी: {count}",
+    "advertisedRoutes": "विज्ञापित मार्ग:"
+  },
+  "timeMachine": {
+    "title": "टाइम मशीन",
+    "loaded": "लोड किया गया: {date}",
+    "goToLatest": "नवीनतम पर जाएं",
+    "back": "वापस",
+    "loadingSnapshots": "मैप स्नैपशॉट लोड हो रहे हैं...",
+    "loadFailed": "नेटवर्क स्नैपशॉट लोड करने में विफल: {error}",
+    "serviceUnavailable": "टाइम मशीन सेवा अस्थायी रूप से अनुपलब्ध है।",
+    "retry": "पुनः प्रयास करें"
+  },
+  "sidebar": {
+    "ranking": "रैंकिंग"
+  },
+  "nodeDetail": {
+    "queryingWhois": "whois डेटाबेस क्वेरी हो रही है...",
+    "whoisError": "नेटवर्क समस्या या ASN नहीं मिला।",
+    "revealExplorer": "DN42 रजिस्ट्री एक्सप्लोरर में देखें",
+    "routes": "मार्ग ({count})",
+    "registry": "रजिस्ट्री",
+    "graph": "ग्राफ",
+    "show": "दिखाएं",
+    "neighbors": "पड़ोसी ({count})",
+    "searchNeighbors": "ASN या नाम से पड़ोसी खोजें..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "ASN या नाम से खोजें..."
+  },
+  "centrality": {
+    "betweenness": "बिटवीननेस",
+    "closeness": "क्लोज़नेस",
+    "degree": "डिग्री",
+    "index": "Map.dn42 इंडेक्स",
+    "rank": "रैंक"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "नाम",
+    "sendsTransit": "ट्रांजिट भेजता है",
+    "recvsTransit": "ट्रांजिट प्राप्त करता है",
+    "rank": "रैंक",
+    "index": "इंडेक्स"
+  },
+  "search": {
+    "notFound": "नोड नहीं मिला।"
+  },
+  "af": {
+    "all": "सभी",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "पता परिवार फ़िल्टर: सभी",
+    "tooltipIpv4": "पता परिवार फ़िल्टर: IPv4 यूनिकास्ट",
+    "tooltipIpv6": "पता परिवार फ़िल्टर: IPv6 यूनिकास्ट",
+    "tooltipMcastIpv4": "पता परिवार फ़िल्टर: IPv4 मल्टीकास्ट",
+    "tooltipMcastIpv6": "पता परिवार फ़िल्टर: IPv6 मल्टीकास्ट"
+  }
+}

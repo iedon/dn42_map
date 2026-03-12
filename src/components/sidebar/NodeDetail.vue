@@ -3,27 +3,27 @@
 
   <!-- WHOIS -->
   <template v-if="whoisLoading">
-    <p>Querying whois database...</p>
+    <p>{{ $t('nodeDetail.queryingWhois') }}</p>
   </template>
   <template v-else-if="whoisError">
-    <p>Network issue or ASN not found.</p>
+    <p>{{ $t('nodeDetail.whoisError') }}</p>
   </template>
   <template v-else-if="whoisHtml">
-    <a :href="`${DN42.explorerUrl}${node.asn}`" target="_blank">Reveal in DN42 Registry Explorer</a><br>
+    <a :href="`${DN42.explorerUrl}${node.asn}`" target="_blank">{{ $t('nodeDetail.revealExplorer') }}</a><br>
     <div class="whois" v-html="whoisHtml" />
   </template>
 
   <!-- Routes -->
-  <p class="emphasized">Routes ({{ node.routes.length }})</p>
+  <p class="emphasized">{{ $t('nodeDetail.routes', { count: node.routes.length }) }}</p>
   <div class="whois">
     <table>
       <tbody>
         <tr v-for="route in node.routes" :key="route">
           <td class="mono">{{ route }}</td>
           <td class="right">
-            <a :href="`${DN42.explorerUrl}${route.replace('/', '_')}`" target="_blank">Registry</a>&nbsp;&nbsp;
-            <a :href="`${DN42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${DN42.routeGraphInitiateAsn}`" target="_blank">Graph</a>&nbsp;&nbsp;
-            <a :href="`${DN42.queryRoutesUrl}${route}`" target="_blank">Show</a>
+            <a :href="`${DN42.explorerUrl}${route.replace('/', '_')}`" target="_blank">{{ $t('nodeDetail.registry') }}</a>&nbsp;&nbsp;
+            <a :href="`${DN42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${DN42.routeGraphInitiateAsn}`" target="_blank">{{ $t('nodeDetail.graph') }}</a>&nbsp;&nbsp;
+            <a :href="`${DN42.queryRoutesUrl}${route}`" target="_blank">{{ $t('nodeDetail.show') }}</a>
           </td>
         </tr>
       </tbody>
@@ -31,12 +31,12 @@
   </div>
 
   <!-- Neighbors -->
-  <p class="emphasized">Neighbors ({{ node.peers.size }})</p>
+  <p class="emphasized">{{ $t('nodeDetail.neighbors', { count: node.peers.size }) }}</p>
   <div class="table-search-container">
     <input
       type="text"
       class="table-search"
-      placeholder="Search neighbors by ASN or Name..."
+      :placeholder="$t('nodeDetail.searchNeighbors')"
       @input="neighborsQuery = ($event.target as HTMLInputElement).value"
     >
   </div>
@@ -51,6 +51,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import CentralityCard from './CentralityCard.vue'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
@@ -58,6 +59,8 @@ import { DN42 } from '@/constants'
 import { fetchWhoisData } from '@/api'
 import { useMapStore } from '@/stores/mapStore'
 import type { MapNode } from '@/types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   node: MapNode
@@ -75,12 +78,12 @@ const whoisError = ref(false)
 const whoisHtml = ref('')
 const whoisCache = new Map<number, string>()
 
-const neighborColumns: Column[] = [
-  { key: 'asn', label: 'ASN', type: 'number', searchable: true },
-  { key: 'name', label: 'Name', searchable: true },
-  { key: 'to', label: 'Sends Transit' },
-  { key: 'from', label: 'Recvs Transit' },
-]
+const neighborColumns = computed<Column[]>(() => [
+  { key: 'asn', label: t('columns.asn'), type: 'number', searchable: true },
+  { key: 'name', label: t('columns.name'), searchable: true },
+  { key: 'to', label: t('columns.sendsTransit') },
+  { key: 'from', label: t('columns.recvsTransit') },
+])
 
 const neighborRows = computed(() =>
   [...props.node.peers].map(peerAsn => ({

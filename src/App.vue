@@ -36,9 +36,10 @@
 <script setup lang="ts">
 import { ref, toRaw, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { select, zoom as d3zoom, zoomIdentity, forceCenter, type ZoomBehavior } from 'd3'
+import { useI18n } from 'vue-i18n'
 
 import { fetchGraphData } from '@/api'
-import { PAGE_TITLE, RENDER } from '@/constants'
+import { RENDER } from '@/constants'
 import { useMapStore } from '@/stores/mapStore'
 import { renderFrame } from '@/graph/renderer'
 import { createSimulation } from '@/graph/simulation'
@@ -53,6 +54,8 @@ import RankingView from '@/components/sidebar/RankingView.vue'
 import MapTooltip from '@/components/MapTooltip.vue'
 import MyIpInfo from '@/components/MyIpInfo.vue'
 import TimeMachine from '@/components/TimeMachine.vue'
+
+const { t } = useI18n()
 
 const store = useMapStore()
 
@@ -282,7 +285,7 @@ function navigateToNode(node: MapNode) {
       .call(zoomBehavior.transform, zoomIdentity.translate(tx, ty).scale(scale))
   }
 
-  document.title = `${node.desc} (AS${node.asn}) - ${PAGE_TITLE}`
+  document.title = `${node.desc} (AS${node.asn}) - ${t('pageTitle')}`
   draw()
 }
 
@@ -321,7 +324,7 @@ function onSearch(value: string) {
     navigateToNode(node)
     openNodeSidebar(node)
   } else {
-    alert('Node not found.')
+    alert(t('search.notFound'))
   }
 }
 
@@ -340,7 +343,7 @@ function toggleRanking() {
   } else {
     sidebarNode.value = null
     showRanking.value = true
-    sidebarTitle.value = 'Ranking'
+    sidebarTitle.value = t('sidebar.ranking')
     sidebarOpen.value = true
   }
 }
@@ -358,7 +361,7 @@ function clearSelection() {
   if (location.hash) {
     history.pushState('', document.title, location.pathname + location.search)
   }
-  document.title = PAGE_TITLE
+  document.title = t('pageTitle')
 }
 
 function onCycleAf() {

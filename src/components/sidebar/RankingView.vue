@@ -3,7 +3,7 @@
     <input
       type="text"
       class="table-search"
-      placeholder="Search by ASN or Name..."
+      :placeholder="$t('rankingView.searchPlaceholder')"
       @input="query = ($event.target as HTMLInputElement).value"
     >
   </div>
@@ -18,9 +18,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
 import type { MapNode } from '@/types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   nodes: MapNode[]
@@ -32,12 +35,12 @@ const emit = defineEmits<{
 
 const query = ref('')
 
-const columns: Column[] = [
-  { key: 'rank', label: 'Rank', type: 'number' },
-  { key: 'asn', label: 'ASN', type: 'number', searchable: true },
-  { key: 'name', label: 'Name', searchable: true },
-  { key: 'index', label: 'Index', type: 'number' },
-]
+const columns = computed<Column[]>(() => [
+  { key: 'rank', label: t('columns.rank'), type: 'number' },
+  { key: 'asn', label: t('columns.asn'), type: 'number', searchable: true },
+  { key: 'name', label: t('columns.name'), searchable: true },
+  { key: 'index', label: t('columns.index'), type: 'number' },
+])
 
 const rows = computed(() =>
   [...props.nodes]

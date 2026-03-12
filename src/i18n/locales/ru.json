@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Карта сети DN42 в реальном времени",
+  "loading": {
+    "fetching": "Загрузка",
+    "parsing": "Предобработка данных карты DN42",
+    "rendering": "Отрисовка сетевой карты DN42",
+    "text": "Загрузка..."
+  },
+  "header": {
+    "dn42Home": "Главная DN42",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "Граф маршрутов от highdef",
+    "tools": "Инструменты от Kioubit",
+    "apiServices": "API-сервисы",
+    "ranking": "Все активные узлы и рейтинг",
+    "timeMachine": "Машина времени (Дата текущей карты: {date})",
+    "searchPlaceholder": "ASN / Имя...",
+    "search": "Поиск"
+  },
+  "tooltip": {
+    "neighbors": "Соседи: {count}",
+    "advertisedRoutes": "Объявленные маршруты:"
+  },
+  "timeMachine": {
+    "title": "Машина времени",
+    "loaded": "Загружено: {date}",
+    "goToLatest": "Перейти к последней версии",
+    "back": "Назад",
+    "loadingSnapshots": "Загрузка снимков карты...",
+    "loadFailed": "Не удалось загрузить сетевые снимки: {error}",
+    "serviceUnavailable": "Сервис машины времени временно недоступен.",
+    "retry": "Повторить"
+  },
+  "sidebar": {
+    "ranking": "Рейтинг"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Запрос к базе данных whois...",
+    "whoisError": "Проблема сети или ASN не найден.",
+    "revealExplorer": "Открыть в обозревателе реестра DN42",
+    "routes": "Маршруты ({count})",
+    "registry": "Реестр",
+    "graph": "Граф",
+    "show": "Показать",
+    "neighbors": "Соседи ({count})",
+    "searchNeighbors": "Поиск соседей по ASN или имени..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Поиск по ASN или имени..."
+  },
+  "centrality": {
+    "betweenness": "Посредничество",
+    "closeness": "Близость",
+    "degree": "Степень",
+    "index": "Индекс Map.dn42",
+    "rank": "Ранг"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Имя",
+    "sendsTransit": "Отправляет транзит",
+    "recvsTransit": "Получает транзит",
+    "rank": "Ранг",
+    "index": "Индекс"
+  },
+  "search": {
+    "notFound": "Узел не найден."
+  },
+  "af": {
+    "all": "ВСЕ",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Фильтр семейства адресов: Все",
+    "tooltipIpv4": "Фильтр семейства адресов: IPv4 одноадресная",
+    "tooltipIpv6": "Фильтр семейства адресов: IPv6 одноадресная",
+    "tooltipMcastIpv4": "Фильтр семейства адресов: IPv4 многоадресная",
+    "tooltipMcastIpv6": "Фильтр семейства адресов: IPv6 многоадресная"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Mapa de rede DN42 em tempo real",
+  "loading": {
+    "fetching": "Obtendo",
+    "parsing": "Pré-processando dados do mapa DN42",
+    "rendering": "Renderizando mapa de rede DN42",
+    "text": "Carregando..."
+  },
+  "header": {
+    "dn42Home": "Início DN42",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "Gráfico de rotas por highdef",
+    "tools": "Ferramentas por Kioubit",
+    "apiServices": "Serviços API",
+    "ranking": "Todos os nós ativos e classificação",
+    "timeMachine": "Máquina do tempo (Data do mapa atual: {date})",
+    "searchPlaceholder": "ASN / Nome...",
+    "search": "Pesquisar"
+  },
+  "tooltip": {
+    "neighbors": "Vizinhos: {count}",
+    "advertisedRoutes": "Rotas anunciadas:"
+  },
+  "timeMachine": {
+    "title": "Máquina do tempo",
+    "loaded": "Carregado: {date}",
+    "goToLatest": "Ir para a versão mais recente",
+    "back": "Voltar",
+    "loadingSnapshots": "Carregando instantâneos do mapa...",
+    "loadFailed": "Falha ao carregar instantâneos de rede: {error}",
+    "serviceUnavailable": "O serviço de máquina do tempo está temporariamente indisponível.",
+    "retry": "Tentar novamente"
+  },
+  "sidebar": {
+    "ranking": "Classificação"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Consultando banco de dados whois...",
+    "whoisError": "Problema de rede ou ASN não encontrado.",
+    "revealExplorer": "Mostrar no explorador de registro DN42",
+    "routes": "Rotas ({count})",
+    "registry": "Registro",
+    "graph": "Gráfico",
+    "show": "Mostrar",
+    "neighbors": "Vizinhos ({count})",
+    "searchNeighbors": "Pesquisar vizinhos por ASN ou Nome..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Pesquisar por ASN ou Nome..."
+  },
+  "centrality": {
+    "betweenness": "Intermediação",
+    "closeness": "Proximidade",
+    "degree": "Grau",
+    "index": "Índice Map.dn42",
+    "rank": "Posição"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Nome",
+    "sendsTransit": "Envia Trânsito",
+    "recvsTransit": "Recebe Trânsito",
+    "rank": "Posição",
+    "index": "Índice"
+  },
+  "search": {
+    "notFound": "Nó não encontrado."
+  },
+  "af": {
+    "all": "ALL",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Filtro de família de endereços: Todos",
+    "tooltipIpv4": "Filtro de família de endereços: IPv4 Unicast",
+    "tooltipIpv6": "Filtro de família de endereços: IPv6 Unicast",
+    "tooltipMcastIpv4": "Filtro de família de endereços: IPv4 Multicast",
+    "tooltipMcastIpv6": "Filtro de família de endereços: IPv6 Multicast"
+  }
+}

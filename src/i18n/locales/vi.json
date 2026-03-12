@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Bản đồ mạng DN42 thời gian thực",
+  "loading": {
+    "fetching": "Đang tải",
+    "parsing": "Đang xử lý dữ liệu bản đồ DN42",
+    "rendering": "Đang kết xuất bản đồ mạng DN42",
+    "text": "Đang tải..."
+  },
+  "header": {
+    "dn42Home": "Trang chủ DN42",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "Biểu đồ tuyến bởi highdef",
+    "tools": "Công cụ bởi Kioubit",
+    "apiServices": "Dịch vụ API",
+    "ranking": "Tất cả các nút hoạt động và xếp hạng",
+    "timeMachine": "Cỗ máy thời gian (Ngày của bản đồ hiện tại: {date})",
+    "searchPlaceholder": "ASN / Tên...",
+    "search": "Tìm kiếm"
+  },
+  "tooltip": {
+    "neighbors": "Láng giềng: {count}",
+    "advertisedRoutes": "Tuyến đã quảng bá:"
+  },
+  "timeMachine": {
+    "title": "Cỗ máy thời gian",
+    "loaded": "Đã tải: {date}",
+    "goToLatest": "Đến phiên bản mới nhất",
+    "back": "Quay lại",
+    "loadingSnapshots": "Đang tải ảnh chụp bản đồ...",
+    "loadFailed": "Không thể tải ảnh chụp mạng: {error}",
+    "serviceUnavailable": "Dịch vụ cỗ máy thời gian tạm thời không khả dụng.",
+    "retry": "Thử lại"
+  },
+  "sidebar": {
+    "ranking": "Xếp hạng"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Đang truy vấn cơ sở dữ liệu whois...",
+    "whoisError": "Sự cố mạng hoặc không tìm thấy ASN.",
+    "revealExplorer": "Hiển thị trong DN42 Registry Explorer",
+    "routes": "Tuyến ({count})",
+    "registry": "Đăng ký",
+    "graph": "Biểu đồ",
+    "show": "Hiển thị",
+    "neighbors": "Láng giềng ({count})",
+    "searchNeighbors": "Tìm láng giềng theo ASN hoặc Tên..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Tìm theo ASN hoặc Tên..."
+  },
+  "centrality": {
+    "betweenness": "Trung gian",
+    "closeness": "Gần gũi",
+    "degree": "Bậc",
+    "index": "Chỉ số Map.dn42",
+    "rank": "Hạng"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Tên",
+    "sendsTransit": "Gửi Transit",
+    "recvsTransit": "Nhận Transit",
+    "rank": "Hạng",
+    "index": "Chỉ số"
+  },
+  "search": {
+    "notFound": "Không tìm thấy nút."
+  },
+  "af": {
+    "all": "ALL",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Bộ lọc họ địa chỉ: Tất cả",
+    "tooltipIpv4": "Bộ lọc họ địa chỉ: IPv4 Unicast",
+    "tooltipIpv6": "Bộ lọc họ địa chỉ: IPv6 Unicast",
+    "tooltipMcastIpv4": "Bộ lọc họ địa chỉ: IPv4 Multicast",
+    "tooltipMcastIpv6": "Bộ lọc họ địa chỉ: IPv6 Multicast"
+  }
+}

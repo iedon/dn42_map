@@ -1,0 +1,81 @@
+{
+  "pageTitle": "แผนที่เครือข่าย DN42 แบบเรียลไทม์",
+  "loading": {
+    "fetching": "กำลังดึงข้อมูล",
+    "parsing": "กำลังประมวลผลข้อมูลแผนที่ DN42",
+    "rendering": "กำลังเรนเดอร์แผนที่เครือข่าย DN42",
+    "text": "กำลังโหลด..."
+  },
+  "header": {
+    "dn42Home": "หน้าแรก DN42",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "กราฟเส้นทางโดย highdef",
+    "tools": "เครื่องมือโดย Kioubit",
+    "apiServices": "บริการ API",
+    "ranking": "โหนดที่ใช้งานทั้งหมดและการจัดอันดับ",
+    "timeMachine": "ไทม์แมชชีน (วันที่ของแผนที่ปัจจุบัน: {date})",
+    "searchPlaceholder": "ASN / ชื่อ...",
+    "search": "ค้นหา"
+  },
+  "tooltip": {
+    "neighbors": "เพื่อนบ้าน: {count}",
+    "advertisedRoutes": "เส้นทางที่ประกาศ:"
+  },
+  "timeMachine": {
+    "title": "ไทม์แมชชีน",
+    "loaded": "โหลดแล้ว: {date}",
+    "goToLatest": "ไปยังเวอร์ชันล่าสุด",
+    "back": "กลับ",
+    "loadingSnapshots": "กำลังโหลดสแนปชอตแผนที่...",
+    "loadFailed": "ไม่สามารถโหลดสแนปชอตเครือข่าย: {error}",
+    "serviceUnavailable": "บริการไทม์แมชชีนไม่พร้อมใช้งานชั่วคราว",
+    "retry": "ลองอีกครั้ง"
+  },
+  "sidebar": {
+    "ranking": "การจัดอันดับ"
+  },
+  "nodeDetail": {
+    "queryingWhois": "กำลังสอบถามฐานข้อมูล whois...",
+    "whoisError": "ปัญหาเครือข่ายหรือไม่พบ ASN",
+    "revealExplorer": "แสดงใน DN42 Registry Explorer",
+    "routes": "เส้นทาง ({count})",
+    "registry": "รีจิสทรี",
+    "graph": "กราฟ",
+    "show": "แสดง",
+    "neighbors": "เพื่อนบ้าน ({count})",
+    "searchNeighbors": "ค้นหาเพื่อนบ้านตาม ASN หรือ ชื่อ..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "ค้นหาตาม ASN หรือ ชื่อ..."
+  },
+  "centrality": {
+    "betweenness": "Betweenness",
+    "closeness": "Closeness",
+    "degree": "ดีกรี",
+    "index": "ดัชนี Map.dn42",
+    "rank": "อันดับ"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "ชื่อ",
+    "sendsTransit": "ส่ง Transit",
+    "recvsTransit": "รับ Transit",
+    "rank": "อันดับ",
+    "index": "ดัชนี"
+  },
+  "search": {
+    "notFound": "ไม่พบโหนด"
+  },
+  "af": {
+    "all": "ALL",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "ตัวกรองตระกูลที่อยู่: ทั้งหมด",
+    "tooltipIpv4": "ตัวกรองตระกูลที่อยู่: IPv4 Unicast",
+    "tooltipIpv6": "ตัวกรองตระกูลที่อยู่: IPv6 Unicast",
+    "tooltipMcastIpv4": "ตัวกรองตระกูลที่อยู่: IPv4 Multicast",
+    "tooltipMcastIpv6": "ตัวกรองตระกูลที่อยู่: IPv6 Multicast"
+  }
+}

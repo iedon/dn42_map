@@ -38,20 +38,20 @@ let ctx: CanvasRenderingContext2D | null = null
 
 const AF_CYCLE: AfFilter[] = [0, 1, 2, 4, 8]
 
-export const AF_LABELS: Record<AfFilter, string> = {
-  0: 'ALL',
-  1: 'IPv4',
-  2: 'IPv6',
-  4: 'MCAST\nIPv4',
-  8: 'MCAST\nIPv6',
+export const AF_LABEL_KEYS: Record<AfFilter, string> = {
+  0: 'af.all',
+  1: 'af.ipv4',
+  2: 'af.ipv6',
+  4: 'af.mcastIpv4',
+  8: 'af.mcastIpv6',
 }
 
-export const AF_TOOLTIPS: Record<AfFilter, string> = {
-  0: 'Address Family Filter: All',
-  1: 'Address Family Filter: IPv4 Unicast',
-  2: 'Address Family Filter: IPv6 Unicast',
-  4: 'Address Family Filter: IPv4 Multicast',
-  8: 'Address Family Filter: IPv6 Multicast',
+export const AF_TOOLTIP_KEYS: Record<AfFilter, string> = {
+  0: 'af.tooltipAll',
+  1: 'af.tooltipIpv4',
+  2: 'af.tooltipIpv6',
+  4: 'af.tooltipMcastIpv4',
+  8: 'af.tooltipMcastIpv6',
 }
 
 function rebuildVisibleNodeAsns() {

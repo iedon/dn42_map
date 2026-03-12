@@ -1,0 +1,81 @@
+{
+  "pageTitle": "DN42 リアルタイムネットワークマップ",
+  "loading": {
+    "fetching": "取得中",
+    "parsing": "DN42マップデータを前処理中",
+    "rendering": "DN42ネットワークマップをレンダリング中",
+    "text": "読み込み中..."
+  },
+  "header": {
+    "dn42Home": "DN42 ホーム",
+    "peerFinder": "DN42 ピアファインダー",
+    "routeGraph": "highdef ルートグラフ",
+    "tools": "Kioubit ツール",
+    "apiServices": "APIサービス",
+    "ranking": "全アクティブノードとランキング",
+    "timeMachine": "タイムマシン（現在のマップ日付：{date}）",
+    "searchPlaceholder": "ASN / 名前...",
+    "search": "検索"
+  },
+  "tooltip": {
+    "neighbors": "ネイバー: {count}",
+    "advertisedRoutes": "広告されたルート:"
+  },
+  "timeMachine": {
+    "title": "タイムマシン",
+    "loaded": "読み込み済み: {date}",
+    "goToLatest": "最新版へ移動",
+    "back": "戻る",
+    "loadingSnapshots": "マップスナップショットを読み込み中...",
+    "loadFailed": "ネットワークスナップショットの読み込みに失敗しました: {error}",
+    "serviceUnavailable": "タイムマシンサービスは一時的に利用できません。",
+    "retry": "再試行"
+  },
+  "sidebar": {
+    "ranking": "ランキング"
+  },
+  "nodeDetail": {
+    "queryingWhois": "whoisデータベースを照会中...",
+    "whoisError": "ネットワークの問題またはASNが見つかりません。",
+    "revealExplorer": "DN42レジストリエクスプローラーで表示",
+    "routes": "ルート ({count})",
+    "registry": "レジストリ",
+    "graph": "グラフ",
+    "show": "表示",
+    "neighbors": "ネイバー ({count})",
+    "searchNeighbors": "ASNまたは名前でネイバーを検索..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "ASNまたは名前で検索..."
+  },
+  "centrality": {
+    "betweenness": "媒介中心性",
+    "closeness": "近接中心性",
+    "degree": "次数",
+    "index": "Map.dn42 インデックス",
+    "rank": "ランク"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "名前",
+    "sendsTransit": "トランジット送信",
+    "recvsTransit": "トランジット受信",
+    "rank": "ランク",
+    "index": "インデックス"
+  },
+  "search": {
+    "notFound": "ノードが見つかりません。"
+  },
+  "af": {
+    "all": "ALL",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "アドレスファミリーフィルター: 全て",
+    "tooltipIpv4": "アドレスファミリーフィルター: IPv4ユニキャスト",
+    "tooltipIpv6": "アドレスファミリーフィルター: IPv6ユニキャスト",
+    "tooltipMcastIpv4": "アドレスファミリーフィルター: IPv4マルチキャスト",
+    "tooltipMcastIpv6": "アドレスファミリーフィルター: IPv6マルチキャスト"
+  }
+}

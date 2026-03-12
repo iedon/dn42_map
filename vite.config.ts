@@ -12,10 +12,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsInlineLimit: 0,
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
+    codeSplitting: false,
   },
 })

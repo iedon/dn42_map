@@ -312,54 +312,58 @@ func checkIfModified(r *http.Request, lastModified time.Time) bool {
 
 // sendJSONResponse sends the graph data as JSON
 func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
-	// Start JSON encoding
-	encoder := json.NewEncoder(w)
 
-	// Write opening brace
-	if _, err := w.Write([]byte("{")); err != nil {
+	// Opening object
+	if _, err := w.Write([]byte{'{'}); err != nil {
 		return err
 	}
 
-	// Write metadata
+	// Metadata
 	if _, err := w.Write([]byte(`"metadata":{`)); err != nil {
 		return err
 	}
 
-	if _, err := w.Write(fmt.Appendf(nil, `"vendor":"%s","generated_timestamp":%d,"data_timestamp":%d},`,
+	if _, err := w.Write(fmt.Appendf(nil,
+		`"vendor":"%s","generated_timestamp":%d,"data_timestamp":%d,"version":%d},`,
 		s.graph.Metadata.Vendor,
 		s.graph.Metadata.GeneratedTimestamp,
-		s.graph.Metadata.DataTimestamp)); err != nil {
+		s.graph.Metadata.DataTimestamp,
+		s.graph.Metadata.Version)); err != nil {
 		return err
 	}
 
-	// Start nodes array
+	// Nodes array
 	if _, err := w.Write([]byte(`"nodes":[`)); err != nil {
 		return err
 	}
 
-	// Write nodes one by one to avoid building a large array in memory
 	for i, node := range s.graph.Nodes {
 		if i > 0 {
-			if _, err := w.Write([]byte(",")); err != nil {
+			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
 
 		jsonNode := s.convertNodeToJSON(node, false)
-		if err := encoder.Encode(jsonNode); err != nil {
+
+		b, err := json.Marshal(jsonNode)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
 			return err
 		}
 	}
 
-	// End nodes array and start links array
+	// Links array
 	if _, err := w.Write([]byte(`],"links":[`)); err != nil {
 		return err
 	}
 
-	// Write links one by one
 	for i, link := range s.graph.Links {
 		if i > 0 {
-			if _, err := w.Write([]byte(",")); err != nil {
+			if _, err := w.Write([]byte{','}); err != nil {
 				return err
 			}
 		}
@@ -367,17 +371,24 @@ func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
 		linkJSON := struct {
 			Source uint32 `json:"source"`
 			Target uint32 `json:"target"`
+			Af     uint32 `json:"af"`
 		}{
 			Source: link.Source,
 			Target: link.Target,
+			Af:     link.Af,
 		}
 
-		if err := encoder.Encode(linkJSON); err != nil {
+		b, err := json.Marshal(linkJSON)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
 			return err
 		}
 	}
 
-	// End links array and close the JSON object
+	// Closing object
 	if _, err := w.Write([]byte("]}")); err != nil {
 		return err
 	}

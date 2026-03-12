@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Χάρτης δικτύου DN42 σε πραγματικό χρόνο",
+  "loading": {
+    "fetching": "Λήψη",
+    "parsing": "Προεπεξεργασία δεδομένων χάρτη DN42",
+    "rendering": "Απόδοση χάρτη δικτύου DN42",
+    "text": "Φόρτωση..."
+  },
+  "header": {
+    "dn42Home": "Αρχική DN42",
+    "peerFinder": "DN42 Peer Finder",
+    "routeGraph": "Γράφημα διαδρομών από highdef",
+    "tools": "Εργαλεία από Kioubit",
+    "apiServices": "Υπηρεσίες API",
+    "ranking": "Όλοι οι ενεργοί κόμβοι και κατάταξη",
+    "timeMachine": "Χρονομηχανή (Ημερομηνία τρέχοντος χάρτη: {date})",
+    "searchPlaceholder": "ASN / Όνομα...",
+    "search": "Αναζήτηση"
+  },
+  "tooltip": {
+    "neighbors": "Γείτονες: {count}",
+    "advertisedRoutes": "Διαφημισμένες διαδρομές:"
+  },
+  "timeMachine": {
+    "title": "Χρονομηχανή",
+    "loaded": "Φορτώθηκε: {date}",
+    "goToLatest": "Μετάβαση στην τελευταία έκδοση",
+    "back": "Πίσω",
+    "loadingSnapshots": "Φόρτωση στιγμιοτύπων χάρτη...",
+    "loadFailed": "Αποτυχία φόρτωσης στιγμιοτύπων δικτύου: {error}",
+    "serviceUnavailable": "Η υπηρεσία χρονομηχανής είναι προσωρινά μη διαθέσιμη.",
+    "retry": "Επανάληψη"
+  },
+  "sidebar": {
+    "ranking": "Κατάταξη"
+  },
+  "nodeDetail": {
+    "queryingWhois": "Ερώτημα στη βάση δεδομένων whois...",
+    "whoisError": "Πρόβλημα δικτύου ή δεν βρέθηκε ASN.",
+    "revealExplorer": "Εμφάνιση στον DN42 Registry Explorer",
+    "routes": "Διαδρομές ({count})",
+    "registry": "Μητρώο",
+    "graph": "Γράφημα",
+    "show": "Εμφάνιση",
+    "neighbors": "Γείτονες ({count})",
+    "searchNeighbors": "Αναζήτηση γειτόνων κατά ASN ή Όνομα..."
+  },
+  "rankingView": {
+    "searchPlaceholder": "Αναζήτηση κατά ASN ή Όνομα..."
+  },
+  "centrality": {
+    "betweenness": "Ενδιαμεσότητα",
+    "closeness": "Εγγύτητα",
+    "degree": "Βαθμός",
+    "index": "Δείκτης Map.dn42",
+    "rank": "Κατάταξη"
+  },
+  "columns": {
+    "asn": "ASN",
+    "name": "Όνομα",
+    "sendsTransit": "Στέλνει Transit",
+    "recvsTransit": "Λαμβάνει Transit",
+    "rank": "Κατάταξη",
+    "index": "Δείκτης"
+  },
+  "search": {
+    "notFound": "Ο κόμβος δεν βρέθηκε."
+  },
+  "af": {
+    "all": "ΟΛΑ",
+    "ipv4": "IPv4",
+    "ipv6": "IPv6",
+    "mcastIpv4": "MCAST\nIPv4",
+    "mcastIpv6": "MCAST\nIPv6",
+    "tooltipAll": "Φίλτρο οικογένειας διευθύνσεων: Όλα",
+    "tooltipIpv4": "Φίλτρο οικογένειας διευθύνσεων: IPv4 Unicast",
+    "tooltipIpv6": "Φίλτρο οικογένειας διευθύνσεων: IPv6 Unicast",
+    "tooltipMcastIpv4": "Φίλτρο οικογένειας διευθύνσεων: IPv4 Multicast",
+    "tooltipMcastIpv6": "Φίλτρο οικογένειας διευθύνσεων: IPv6 Multicast"
+  }
+}

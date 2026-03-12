@@ -5,9 +5,9 @@
         <span v-if="source" class="tag">{{ source }}</span>
         <b>{{ cleanDesc }} (AS{{ node.asn }})</b>
       </div>
-      <p>Neighbors: {{ node.peers.size }}</p>
+      <p>{{ $t('tooltip.neighbors', { count: node.peers.size }) }}</p>
       <template v-if="node.routes.length">
-        <p>Advertised routes:</p>
+        <p>{{ $t('tooltip.advertisedRoutes') }}</p>
         <ul>
           <li v-for="route in node.routes" :key="route">{{ route }}</li>
         </ul>

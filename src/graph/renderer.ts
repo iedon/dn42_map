@@ -1,7 +1,7 @@
 import { RENDER } from '@/constants'
 import { scaleSqrt } from '@/utils/scale'
 import type { MapNode, MapLink, Viewport } from '@/types'
-import type { ZoomTransform } from 'd3-zoom'
+import type { ZoomTransform } from 'd3'
 
 const FRAME_INTERVAL = 1000 / RENDER.node.maxFPS
 let lastFrameTime = 0
@@ -46,7 +46,7 @@ export function renderFrame(
 ): void {
   // Throttle rendering to max FPS
   const now = performance.now()
-  // if (now - lastFrameTime < FRAME_INTERVAL) return
+  if (now - lastFrameTime < FRAME_INTERVAL) return
   lastFrameTime = now
 
   // Calculate viewport once per frame for efficient culling

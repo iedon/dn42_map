@@ -1,6 +1,5 @@
-import { reactive, shallowRef, triggerRef } from 'vue'
-import { zoomIdentity, type ZoomTransform } from 'd3-zoom'
-import type { Simulation } from 'd3-force'
+import { shallowReactive, shallowRef, triggerRef } from 'vue'
+import { zoomIdentity, type ZoomTransform, type Simulation } from 'd3'
 import type { MapNode, MapLink, AfFilter, RawGraph } from '@/types'
 import { preprocessDataset } from './preprocess'
 
@@ -17,7 +16,7 @@ export interface MapState {
   visibleNodeAsns: Set<number> | null
 }
 
-const state = reactive<MapState>({
+const state = shallowReactive<MapState>({
   rawData: null,
   nodes: [],
   links: [],

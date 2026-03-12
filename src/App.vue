@@ -34,11 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { select } from 'd3-selection'
-import { zoom as d3zoom, zoomIdentity, type ZoomBehavior } from 'd3-zoom'
-import { forceCenter } from 'd3-force'
-import 'd3-transition'
+import { ref, toRaw, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { select, zoom as d3zoom, zoomIdentity, forceCenter, type ZoomBehavior } from 'd3'
 
 import { fetchGraphData } from '@/api'
 import { PAGE_TITLE, RENDER } from '@/constants'
@@ -119,7 +116,7 @@ function draw() {
   if (isFirstTimeLoading) return
   const canvas = store.getCanvas()!
   const ctx = store.getCtx()!
-  const s = store.state
+  const s = toRaw(store.state)
   renderFrame(canvas, ctx, s.transform, s.deduplicatedLinks, s.nodes, s.hoveredNode, s.afFilter, s.visibleNodeAsns)
 }
 
@@ -163,9 +160,10 @@ function getCoord(event: PointerEvent): [number, number] {
 
 function findClosestNode(x: number, y: number): MapNode | null {
   let minDist = Infinity, closest: MapNode | null = null
-  const { visibleNodeAsns } = store.state
+  const raw = toRaw(store.state)
+  const { visibleNodeAsns, nodes } = raw
 
-  for (const node of store.state.nodes) {
+  for (const node of nodes) {
     if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
     const dist = Math.hypot(node.x - x, node.y - y)
     if (dist < 15 && dist < minDist) {

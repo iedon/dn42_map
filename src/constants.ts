@@ -5,7 +5,7 @@ export const BIN_VENDOR_MAGIC = 'IEDON.NET'
 export const MAP_VERSION = 2
 
 export const RENDER = {
-  pixelRatio: devicePixelRatio || 1,
+  pixelRatio: window.devicePixelRatio || 1,
   d3force: {
     linkDistance: 100,
     manyBodyStrength: -500,
@@ -18,7 +18,8 @@ export const RENDER = {
       initial: 1.45,
     },
     backgroundColor: '#333',
-    viewportMargin: 0,
+    // viewportMargin: 100,
+    viewportMargin: 0, // Extra margin for smooth viewport culling transitions
   },
   node: {
     minSize: 3,
@@ -34,12 +35,12 @@ export const RENDER = {
     labelFontSizePx: 7,
     labelFontSizeMaxPx: 14,
     labelFontFamily: '-apple-system,Roboto,Noto,"Segoe UI",Arial,sans-serif',
-    labelCulling: {
-      baseZoomThreshold: 0.65,
-      highZoomThreshold: 2.0,
-      maxLabelsInView: 80,
-      importanceThresholdRange: [500, 50] as [number, number],
-    },
+      labelCulling: {
+        baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels
+        highZoomThreshold: 2.0, // Zoom level to show all labels in viewport
+        maxLabelsInView: 80, // Maximum number of labels to render at once
+        importanceThresholdRange: [500, 50] as [number, number], // Importance score range for medium zoom levels
+      },
     maxFPS: 75,
   },
   link: {

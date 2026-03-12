@@ -11,18 +11,12 @@
   "author": "iedon.net",
   "license": "GPL-3.0-only",
   "dependencies": {
-    "d3-force": "^3.0.0",
-    "d3-selection": "^3.0.0",
-    "d3-transition": "^3.0.1",
-    "d3-zoom": "^3.0.0",
+    "d3": "^7.9.0",
     "protobufjs": "^8.0.0",
     "vue": "^3.5.30"
   },
   "devDependencies": {
-    "@types/d3-force": "^3.0.10",
-    "@types/d3-selection": "^3.0.11",
-    "@types/d3-transition": "^3.0.9",
-    "@types/d3-zoom": "^3.0.8",
+    "@types/d3": "^7.4.3",
     "@vitejs/plugin-vue": "^6.0.5",
     "sass-embedded": "^1.98.0",
     "typescript": "^5.9.3",

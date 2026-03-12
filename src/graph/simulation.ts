@@ -1,4 +1,4 @@
-import { forceSimulation, forceLink, forceManyBody, forceCenter } from 'd3-force'
+import { forceSimulation, forceLink, forceManyBody, forceCenter } from 'd3'
 import { RENDER } from '@/constants'
 import type { MapNode, MapLink } from '@/types'
 

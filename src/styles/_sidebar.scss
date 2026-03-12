@@ -1,0 +1,261 @@
+@use 'variables' as *;
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -500px;
+  width: $sidebar-width;
+  height: calc(100% - 40px);
+  background: $bg-panel;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  transition: left $transition-slide;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1000;
+
+  &.open {
+    left: 0;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  background: $bg-panel;
+  position: sticky;
+  top: -20px;
+  height: 50px;
+  z-index: 100;
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: $text-primary;
+}
+
+.sidebar-content {
+  margin-bottom: 30px;
+  font-size: 14px;
+  color: $text-secondary;
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
+
+  ul {
+    padding-left: 20px;
+  }
+
+  li {
+    margin: 5px 0;
+  }
+
+  a {
+    font-weight: normal;
+    cursor: pointer;
+    color: $accent-link;
+    text-decoration: none;
+
+    &:hover {
+      font-weight: bold;
+      color: $accent-link-hover;
+    }
+  }
+}
+
+.emphasized {
+  color: $text-white;
+  font-weight: bold;
+  margin-top: 30px;
+}
+
+// Table search
+.table-search-container {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(60, 60, 60, 0.8);
+  border-radius: 8px;
+
+  input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.table-search {
+  transition: all $transition-fast;
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: rgba(46, 46, 46, 0.9);
+  color: $text-primary;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  outline: none;
+
+  &:focus {
+    border-color: $accent-green !important;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important;
+    background-color: rgba(46, 46, 46, 1) !important;
+  }
+
+  &:hover {
+    border-color: #666 !important;
+    background-color: rgba(46, 46, 46, 0.95) !important;
+  }
+}
+
+// Whois & tables
+.whois {
+  max-width: $sidebar-width;
+  overflow: hidden;
+  color: $text-primary;
+
+  table {
+    width: 100%;
+    margin: 10px auto 0;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .remarks {
+    overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
+
+    p {
+      line-height: 1em;
+      font-size: 12px;
+      font-family: $mono-font;
+      text-align: center;
+      padding: 0;
+      margin: 0;
+
+      &:first-child {
+        margin-top: 10px;
+      }
+    }
+  }
+
+  tr {
+    &:nth-child(even) {
+      background-color: $row-even;
+    }
+
+    &:hover {
+      background-color: $row-hover;
+    }
+  }
+
+  td, th {
+    padding: 5px;
+    font-size: 12px;
+    text-align: left;
+    overflow-wrap: break-word;
+  }
+
+  td.mono {
+    font-family: $mono-font;
+    color: $route-mono;
+  }
+
+  th {
+    cursor: pointer;
+    user-select: none;
+
+    &.sort-asc::after { content: " ↑"; }
+    &.sort-desc::after { content: " ↓"; }
+  }
+
+  .key {
+    font-size: 12px;
+    font-weight: bold;
+    color: $accent-green-light;
+    text-align: left;
+  }
+
+  td.center { text-align: center; }
+  td.right { text-align: right; }
+
+  td.rank, td.asn, td.name, td.index, td.to, td.from {
+    cursor: pointer;
+  }
+
+  .rank { width: 15%; }
+  .index { width: 15%; }
+  .asn { width: 30%; }
+  .name { width: 40%; }
+
+  .to, .from {
+    width: 15%;
+    text-align: center;
+  }
+}
+
+// Centrality card
+.centrality {
+  background: linear-gradient(90deg, $accent-green, #3a8fb7);
+  border-radius: 8px;
+  color: $text-white;
+  padding: 15px 20px;
+  margin: 10px auto 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  .param {
+    flex: 1;
+
+    div {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      margin: 1px 10px 1px 0;
+      color: #eee;
+
+      strong { color: $text-white; }
+    }
+  }
+
+  .index {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rank {
+    flex: 0.5;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .index, .rank {
+    span {
+      font-size: 10px;
+      margin-bottom: 5px;
+      color: #eee;
+    }
+
+    strong {
+      text-align: center;
+      font-size: 20px;
+      letter-spacing: 1px;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+    }
+  }
+}

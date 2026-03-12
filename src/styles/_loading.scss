@@ -1,0 +1,68 @@
+@use 'variables' as *;
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(51, 51, 51, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity 0.5s ease-out;
+
+  &.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto;
+  border: 4px solid $border-color;
+  border-radius: 50%;
+  position: relative;
+  transition: all $transition-medium;
+
+  &.fetching {
+    border-top-color: $accent-orange;
+    animation: spin 1s linear infinite;
+    background: none;
+  }
+
+  &.rendering {
+    animation: none;
+    border-radius: 50%;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 42px;
+      height: 42px;
+      background: $bg-dark;
+      border-radius: 50%;
+    }
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 20px;
+  font-size: 14px;
+  color: $text-primary;
+  text-align: center;
+}
+
+.loading-percentage {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  color: $accent-orange;
+  text-align: center;
+}

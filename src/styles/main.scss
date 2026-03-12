@@ -1,0 +1,12 @@
+@use 'base';
+@use 'loading';
+@use 'header';
+@use 'sidebar';
+@use 'tooltip';
+@use 'myip';
+@use 'timemachine';
+
+.map-canvas {
+  user-select: none;
+  -webkit-user-select: none;
+}

@@ -1,0 +1,54 @@
+@use 'variables' as *;
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: $bg-dark;
+  color: $text-primary;
+  font-family: $sans-font;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: $accent-green-dark $bg-panel;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: $bg-panel;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $accent-green-dark;
+  border-radius: 5px;
+  border: 2px solid $bg-panel;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: $accent-green-light;
+}
+
+::-webkit-scrollbar-corner {
+  background: #2e2e2e;
+}
+
+button {
+  margin-left: 5px;
+  padding: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #3b3b3b;
+  color: $text-primary;
+  border: none;
+  border-radius: 5px;
+
+  &:hover {
+    background-color: $accent-green;
+    color: $text-white;
+  }
+}

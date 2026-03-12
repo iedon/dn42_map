@@ -2,6 +2,7 @@ __pycache__
 .DS_Store
 generator/__pycache__
 generator/map.bin
+public/map.bin
 venv
 map.bin
 map.json

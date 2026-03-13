@@ -54,5 +54,10 @@ function finish() {
   setTimeout(() => { visible.value = false }, 500)
 }
 
-defineExpose({ finish })
+function show() {
+  hiding.value = false
+  visible.value = true
+}
+
+defineExpose({ finish, show })
 </script>

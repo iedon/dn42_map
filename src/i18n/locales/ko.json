@@ -39,6 +39,8 @@
     "whoisError": "네트워크 문제 또는 ASN을 찾을 수 없습니다.",
     "revealExplorer": "DN42 레지스트리 탐색기에서 보기",
     "routes": "경로 ({count})",
+    "unicast": "유니캐스트",
+    "multicast": "멀티캐스트",
     "registry": "레지스트리",
     "graph": "그래프",
     "show": "보기",

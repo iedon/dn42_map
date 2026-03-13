@@ -4,7 +4,7 @@
       type="text"
       class="table-search"
       :placeholder="$t('rankingView.searchPlaceholder')"
-      @input="query = ($event.target as HTMLInputElement).value"
+      @input="onQueryInput"
     >
   </div>
   <SortableTable
@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { debounce } from '@/utils/timing'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
 import type { MapNode } from '@/types'
@@ -34,6 +35,9 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
+const onQueryInput = debounce((e: Event) => {
+  query.value = (e.target as HTMLInputElement).value
+}, 200)
 
 const columns = computed<Column[]>(() => [
   { key: 'rank', label: t('columns.rank'), type: 'number' },

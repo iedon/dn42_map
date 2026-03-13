@@ -39,6 +39,8 @@
     "whoisError": "ネットワークの問題またはASNが見つかりません。",
     "revealExplorer": "DN42レジストリエクスプローラーで表示",
     "routes": "ルート ({count})",
+    "unicast": "ユニキャスト",
+    "multicast": "マルチキャスト",
     "registry": "レジストリ",
     "graph": "グラフ",
     "show": "表示",

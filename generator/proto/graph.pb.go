@@ -23,13 +23,14 @@ const (
 
 // Node represents an AS node
 type Node struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Asn           uint32                 `protobuf:"varint,1,opt,name=asn,proto3" json:"asn,omitempty"`
-	Desc          string                 `protobuf:"bytes,2,opt,name=desc,proto3" json:"desc,omitempty"`
-	Routes        []*Route               `protobuf:"bytes,3,rep,name=routes,proto3" json:"routes,omitempty"`
-	Centrality    *Centrality            `protobuf:"bytes,4,opt,name=centrality,proto3" json:"centrality,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Asn             uint32                 `protobuf:"varint,1,opt,name=asn,proto3" json:"asn,omitempty"`
+	Desc            string                 `protobuf:"bytes,2,opt,name=desc,proto3" json:"desc,omitempty"`
+	Routes          []*Route               `protobuf:"bytes,3,rep,name=routes,proto3" json:"routes,omitempty"`
+	Centrality      *Centrality            `protobuf:"bytes,4,opt,name=centrality,proto3" json:"centrality,omitempty"`
+	RoutesMulticast []*Route               `protobuf:"bytes,5,rep,name=routes_multicast,json=routesMulticast,proto3" json:"routes_multicast,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Node) Reset() {
@@ -86,6 +87,13 @@ func (x *Node) GetRoutes() []*Route {
 func (x *Node) GetCentrality() *Centrality {
 	if x != nil {
 		return x.Centrality
+	}
+	return nil
+}
+
+func (x *Node) GetRoutesMulticast() []*Route {
+	if x != nil {
+		return x.RoutesMulticast
 	}
 	return nil
 }
@@ -522,14 +530,15 @@ var File_graph_proto protoreflect.FileDescriptor
 
 const file_graph_proto_rawDesc = "" +
 	"\n" +
-	"\vgraph.proto\x12\bdn42_map\"\x8b\x01\n" +
+	"\vgraph.proto\x12\bdn42_map\"\xc7\x01\n" +
 	"\x04Node\x12\x10\n" +
 	"\x03asn\x18\x01 \x01(\rR\x03asn\x12\x12\n" +
 	"\x04desc\x18\x02 \x01(\tR\x04desc\x12'\n" +
 	"\x06routes\x18\x03 \x03(\v2\x0f.dn42_map.RouteR\x06routes\x124\n" +
 	"\n" +
 	"centrality\x18\x04 \x01(\v2\x14.dn42_map.CentralityR\n" +
-	"centrality\"\x94\x01\n" +
+	"centrality\x12:\n" +
+	"\x10routes_multicast\x18\x05 \x03(\v2\x0f.dn42_map.RouteR\x0froutesMulticast\"\x94\x01\n" +
 	"\n" +
 	"Centrality\x12\x16\n" +
 	"\x06degree\x18\x01 \x01(\x01R\x06degree\x12 \n" +
@@ -586,15 +595,16 @@ var file_graph_proto_goTypes = []any{
 var file_graph_proto_depIdxs = []int32{
 	2, // 0: dn42_map.Node.routes:type_name -> dn42_map.Route
 	1, // 1: dn42_map.Node.centrality:type_name -> dn42_map.Centrality
-	3, // 2: dn42_map.Route.ipv6:type_name -> dn42_map.IPv6
-	5, // 3: dn42_map.Graph.metadata:type_name -> dn42_map.Metadata
-	0, // 4: dn42_map.Graph.nodes:type_name -> dn42_map.Node
-	4, // 5: dn42_map.Graph.links:type_name -> dn42_map.Link
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	2, // 2: dn42_map.Node.routes_multicast:type_name -> dn42_map.Route
+	3, // 3: dn42_map.Route.ipv6:type_name -> dn42_map.IPv6
+	5, // 4: dn42_map.Graph.metadata:type_name -> dn42_map.Metadata
+	0, // 5: dn42_map.Graph.nodes:type_name -> dn42_map.Node
+	4, // 6: dn42_map.Graph.links:type_name -> dn42_map.Link
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_graph_proto_init() }

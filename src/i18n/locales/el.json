@@ -39,6 +39,8 @@
     "whoisError": "Πρόβλημα δικτύου ή δεν βρέθηκε ASN.",
     "revealExplorer": "Εμφάνιση στον DN42 Registry Explorer",
     "routes": "Διαδρομές ({count})",
+    "unicast": "Unicast",
+    "multicast": "Multicast",
     "registry": "Μητρώο",
     "graph": "Γράφημα",
     "show": "Εμφάνιση",

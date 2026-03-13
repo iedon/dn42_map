@@ -21,27 +21,35 @@ export function preprocessDataset(data: RawGraph) {
     const asn = raw.asn || 0
     const label = cleanLabel(raw.desc)
 
-    // Parse routes
-    const ipv4Routes: [number, string][] = []
-    const ipv6Routes: [number, string][] = []
-
-    if (raw.routes) {
+    // Parse unicast routes — sort raw arrays in-place before formatting to avoid tuple allocations
+    const routes: string[] = []
+    if (raw.routes?.length) {
+      const v4: typeof raw.routes = []
+      const v6: typeof raw.routes = []
       for (const route of raw.routes) {
-        if (route.ipv4 != null) {
-          ipv4Routes.push([route.length, `${ipv4FromUint32(route.ipv4)}/${route.length}`])
-        } else if (route.ipv6 != null) {
-          const ip = ipv6FromQuad32(route.ipv6.high_h32, route.ipv6.high_l32, route.ipv6.low_h32, route.ipv6.low_l32)
-          ipv6Routes.push([route.length, `${ip}/${route.length}`])
-        }
+        if (route.ipv4 != null) v4.push(route)
+        else if (route.ipv6 != null) v6.push(route)
       }
+      v4.sort((a, b) => a.length - b.length)
+      v6.sort((a, b) => a.length - b.length)
+      for (const r of v4) routes.push(`${ipv4FromUint32(r.ipv4!)}/${r.length}`)
+      for (const r of v6) routes.push(`${ipv6FromQuad32(r.ipv6!.high_h32, r.ipv6!.high_l32, r.ipv6!.low_h32, r.ipv6!.low_l32)}/${r.length}`)
     }
 
-    ipv4Routes.sort((a, b) => a[0] - b[0])
-    ipv6Routes.sort((a, b) => a[0] - b[0])
-
-    const routes: string[] = []
-    for (const [, r] of ipv4Routes) routes.push(r)
-    for (const [, r] of ipv6Routes) routes.push(r)
+    // Parse multicast routes
+    const routesMulticast: string[] = []
+    if (raw.routes_multicast?.length) {
+      const v4: typeof raw.routes_multicast = []
+      const v6: typeof raw.routes_multicast = []
+      for (const route of raw.routes_multicast) {
+        if (route.ipv4 != null) v4.push(route)
+        else if (route.ipv6 != null) v6.push(route)
+      }
+      v4.sort((a, b) => a.length - b.length)
+      v6.sort((a, b) => a.length - b.length)
+      for (const r of v4) routesMulticast.push(`${ipv4FromUint32(r.ipv4!)}/${r.length}`)
+      for (const r of v6) routesMulticast.push(`${ipv6FromQuad32(r.ipv6!.high_h32, r.ipv6!.high_l32, r.ipv6!.low_h32, r.ipv6!.low_l32)}/${r.length}`)
+    }
 
     const centrality = {
       degree: raw.centrality?.degree || 0,
@@ -62,6 +70,7 @@ export function preprocessDataset(data: RawGraph) {
       desc: raw.desc,
       label,
       routes,
+      routesMulticast,
       centrality,
       peers: new Set(),
       size: RENDER.node.minSize,

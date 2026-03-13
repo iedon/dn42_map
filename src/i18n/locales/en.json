@@ -39,6 +39,8 @@
     "whoisError": "Network issue or ASN not found.",
     "revealExplorer": "Reveal in DN42 Registry Explorer",
     "routes": "Routes ({count})",
+    "unicast": "Unicast",
+    "multicast": "Multicast",
     "registry": "Registry",
     "graph": "Graph",
     "show": "Show",

@@ -16,9 +16,10 @@ type ASPath struct {
 
 // Result stores the results of MRT processing
 type Result struct {
-	ASPaths    []ASPath           // AS path list
-	Advertises map[uint32][]Route // ASN to route mapping
-	Metadata   *Metadata
+	ASPaths             []ASPath           // AS path list
+	Advertises          map[uint32][]Route // ASN to unicast route mapping
+	AdvertisesMulticast map[uint32][]Route // ASN to multicast route mapping
+	Metadata            *Metadata
 }
 
 // Route represents a route entry
@@ -43,11 +44,13 @@ func NewProcessor() *Processor {
 	return &Processor{}
 }
 
-// Process processes MRT data and returns the result
-func (p *Processor) Process(data []byte) (*Result, error) {
+// Process processes MRT data and returns the result.
+// isMulticast indicates whether this data came from a multicast MRT dump URL.
+func (p *Processor) Process(data []byte, isMulticast bool) (*Result, error) {
 	result := &Result{
-		ASPaths:    make([]ASPath, 0),
-		Advertises: make(map[uint32][]Route),
+		ASPaths:             make([]ASPath, 0),
+		Advertises:          make(map[uint32][]Route),
+		AdvertisesMulticast: make(map[uint32][]Route),
 	}
 
 	reader := bytes.NewReader(data)
@@ -72,7 +75,7 @@ func (p *Processor) Process(data []byte) (*Result, error) {
 		// Process different types of messages
 		switch msgType {
 		case 13: // TABLE_DUMP_V2
-			if err := p.processTableDumpV2(subType, body, result); err != nil {
+			if err := p.processTableDumpV2(subType, body, result, isMulticast); err != nil {
 				return nil, err
 			}
 		}
@@ -92,8 +95,10 @@ func (p *Processor) Process(data []byte) (*Result, error) {
 }
 
 // processTableDumpV2 processes TABLE_DUMP_V2 type messages
-func (p *Processor) processTableDumpV2(subType uint16, data []byte, result *Result) error {
+func (p *Processor) processTableDumpV2(subType uint16, data []byte, result *Result, isMulticast bool) error {
 	reader := bytes.NewReader(data)
+
+	finalIsMulticast := isMulticast || subType == 3 || subType == 5 || subType == 9 || subType == 11
 
 	switch subType {
 	case 1: // PEER_INDEX_TABLE
@@ -114,14 +119,14 @@ func (p *Processor) processTableDumpV2(subType uint16, data []byte, result *Resu
 	case 10: // RIB_IPV6_UNICAST_ADDPATH
 		fallthrough
 	case 11: // RIB_IPV6_MULTICAST_ADDPATH
-		return p.processRIBEntry(subType, reader, result)
+		return p.processRIBEntry(subType, reader, result, finalIsMulticast)
 	}
 
 	return nil
 }
 
 // processRIBEntry processes RIB entries
-func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result *Result) error {
+func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result *Result, isMulticast bool) error {
 	// Read sequence number (skip)
 	var seqNum uint32
 	if err := binary.Read(reader, binary.BigEndian, &seqNum); err != nil {
@@ -175,7 +180,7 @@ func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result
 			}
 		}
 
-		if err := p.processRIBEntryDescriptor(reader, result, ipStr, uint32(prefixLen), subType); err != nil {
+		if err := p.processRIBEntryDescriptor(reader, result, ipStr, uint32(prefixLen), subType, isMulticast); err != nil {
 			return err
 		}
 	}
@@ -184,7 +189,7 @@ func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result
 }
 
 // processRIBEntryDescriptor processes RIB entry descriptors
-func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Result, prefix string, prefixLen uint32, subType uint16) error {
+func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Result, prefix string, prefixLen uint32, subType uint16, isMulticast bool) error {
 	// Skip peer index
 	var peerIndex uint16
 	if err := binary.Read(reader, binary.BigEndian, &peerIndex); err != nil {
@@ -286,16 +291,21 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 	if len(asPath) > 0 {
 		p.Lock()
 		// AF bitmask: 1=IPv4 unicast, 2=IPv6 unicast, 4=IPv4 multicast, 8=IPv6 multicast
+		// Determine IPv4 vs IPv6 from subtype; unicast vs multicast from collector source
+		isIPv4 := subType == 2 || subType == 3 || subType == 8 || subType == 9 // Otherwise IPv6 (type 4, 5, 10, 11)
 		var af uint32
-		switch subType {
-		case 2, 8: // RIB_IPV4_UNICAST, RIB_IPV4_UNICAST_ADDPATH
-			af = 1 // 0001
-		case 4, 10: // RIB_IPV6_UNICAST, RIB_IPV6_UNICAST_ADDPATH
-			af = 2 // 0010
-		case 3, 9: // RIB_IPV4_MULTICAST, RIB_IPV4_MULTICAST_ADDPATH
-			af = 4 // 0100
-		case 5, 11: // RIB_IPV6_MULTICAST, RIB_IPV6_MULTICAST_ADDPATH
-			af = 8 // 1000
+		if isMulticast {
+			if isIPv4 {
+				af = 4 // 0100 - IPv4 multicast
+			} else {
+				af = 8 // 1000 - IPv6 multicast
+			}
+		} else {
+			if isIPv4 {
+				af = 1 // 0001 - IPv4 unicast
+			} else {
+				af = 2 // 0010 - IPv6 unicast
+			}
 		}
 		result.ASPaths = append(result.ASPaths, ASPath{Path: asPath, AF: af})
 
@@ -304,13 +314,13 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 			Length: prefixLen,
 		}
 
-		if subType == 2 || subType == 3 || subType == 8 || subType == 9 { // IPv4 (unicast/multicast)
+		if isIPv4 {
 			route.IPType = "ipv4"
 			ip := net.ParseIP(prefix).To4()
 			if ip != nil {
 				route.IPValue = binary.BigEndian.Uint32(ip)
 			}
-		} else { // IPv6 (type 4, 5, 10, 11)
+		} else { // IPv6
 			route.IPType = "ipv6"
 			ip := net.ParseIP(prefix).To16()
 			if ip != nil {
@@ -325,8 +335,14 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 			}
 		}
 
+		// Determine target map based on collector source
+		targetMap := result.Advertises
+		if isMulticast {
+			targetMap = result.AdvertisesMulticast
+		}
+
 		// Check for duplicates
-		routes := result.Advertises[lastAS]
+		routes := targetMap[lastAS]
 		isDuplicate := false
 		for _, r := range routes {
 			if r.Length == route.Length && r.IPType == route.IPType && r.IPValue == route.IPValue {
@@ -337,7 +353,7 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 
 		// Only append if it's a new route
 		if !isDuplicate {
-			result.Advertises[lastAS] = append(result.Advertises[lastAS], route)
+			targetMap[lastAS] = append(targetMap[lastAS], route)
 		}
 		p.Unlock()
 	}
@@ -351,8 +367,9 @@ func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Resu
 // MergeResults merges multiple processing results
 func MergeResults(results chan *Result) *Result {
 	merged := &Result{
-		ASPaths:    make([]ASPath, 0),
-		Advertises: make(map[uint32][]Route),
+		ASPaths:             make([]ASPath, 0),
+		Advertises:          make(map[uint32][]Route),
+		AdvertisesMulticast: make(map[uint32][]Route),
 	}
 
 	for result := range results {
@@ -368,6 +385,11 @@ func MergeResults(results chan *Result) *Result {
 			merged.Advertises[asn] = append(merged.Advertises[asn], routes...)
 		}
 
+		// Merge multicast advertised routes
+		for asn, routes := range result.AdvertisesMulticast {
+			merged.AdvertisesMulticast[asn] = append(merged.AdvertisesMulticast[asn], routes...)
+		}
+
 		if merged.Metadata == nil && result.Metadata != nil {
 			merged.Metadata = result.Metadata
 		}
@@ -375,6 +397,7 @@ func MergeResults(results chan *Result) *Result {
 		// Help GC by clearing the processed result
 		result.ASPaths = nil
 		result.Advertises = nil
+		result.AdvertisesMulticast = nil
 	}
 
 	return merged

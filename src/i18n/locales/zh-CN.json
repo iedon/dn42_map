@@ -39,6 +39,8 @@
     "whoisError": "网络问题或未找到 ASN。",
     "revealExplorer": "在 DN42 注册表浏览器中查看",
     "routes": "路由 ({count})",
+    "unicast": "单播",
+    "multicast": "组播",
     "registry": "注册表",
     "graph": "图表",
     "show": "查看",

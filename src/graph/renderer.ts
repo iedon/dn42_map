@@ -18,6 +18,7 @@ const BG_COLOR = RENDER.canvas.backgroundColor
 const BORDER_COLOR = RENDER.node.borderColor
 const BORDER_WIDTH = RENDER.node.borderWidth
 const VIEWPORT_MARGIN = RENDER.canvas.viewportMargin
+const TWO_PI = Math.PI * 2
 const { baseZoomThreshold, highZoomThreshold, maxLabelsInView, importanceThresholdRange } = RENDER.node.labelCulling
 
 function calcViewport(canvas: HTMLCanvasElement, t: ZoomTransform): Viewport {
@@ -67,17 +68,12 @@ export function renderFrame(
   ctx.strokeStyle = LINK_COLOR_DEFAULT
   ctx.lineWidth = LINK_WIDTH_DEFAULT
 
-  // Draw non-emphasized links first to reduce overdrawing emphasized ones
   for (const link of deduplicatedLinks) {
-    // Filter by AF
     if (afFilter && !(link.af & afFilter)) continue
 
-    // Filter by visibility
-    const sv = inView(link.source.x, link.source.y, vp)
-    const tv = inView(link.target.x, link.target.y, vp)
-    if (!sv && !tv) continue
+    if (!inView(link.source.x, link.source.y, vp) &&
+      !inView(link.target.x, link.target.y, vp)) continue
 
-    // Emphasize if hovered
     if (hoveredNode && (link.source === hoveredNode || link.target === hoveredNode)) {
       emphasizedLinks.push(link)
     } else {
@@ -88,7 +84,6 @@ export function renderFrame(
     }
   }
 
-  // Draw emphasized links on top of non-emphasized ones
   if (emphasizedLinks.length) {
     ctx.strokeStyle = LINK_COLOR_EMPHASIS
     ctx.lineWidth = LINK_WIDTH_EMPHASIS
@@ -102,8 +97,9 @@ export function renderFrame(
 
   // -- Nodes + label collection --
   let eligibleLabels: MapNode[] = []
+  // Pre-computed hovered peers set for O(1) lookup
+  const hoveredPeers = hoveredNode?.peers
 
-  // Label culling based on zoom and centrality
   if (zoom >= baseZoomThreshold) {
     const threshold = scaleSqrt(
       [baseZoomThreshold, highZoomThreshold],
@@ -116,7 +112,7 @@ export function renderFrame(
 
       if (
         node === hoveredNode ||
-        hoveredNode?.peers?.has(node.asn) ||
+        hoveredPeers?.has(node.asn) ||
         zoom >= highZoomThreshold ||
         node.centrality.index >= threshold
       ) {
@@ -134,20 +130,20 @@ export function renderFrame(
   }
 
   // Draw nodes
+  ctx.strokeStyle = BORDER_COLOR
+  ctx.lineWidth = BORDER_WIDTH
   for (const node of nodes) {
     if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
     if (!inView(node.x, node.y, vp, 50)) continue
 
+    ctx.fillStyle =
+      node === hoveredNode ? NODE_COLOR_CURRENT
+        : hoveredPeers?.has(node.asn) ? NODE_COLOR_LINKED
+          : NODE_COLOR_DEFAULT
+
     ctx.beginPath()
-    ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2)
-
-    if (node === hoveredNode) ctx.fillStyle = NODE_COLOR_CURRENT
-    else if (hoveredNode?.peers?.has(node.asn)) ctx.fillStyle = NODE_COLOR_LINKED
-    else ctx.fillStyle = NODE_COLOR_DEFAULT
-
+    ctx.arc(node.x, node.y, node.size, 0, TWO_PI)
     ctx.fill()
-    ctx.strokeStyle = BORDER_COLOR
-    ctx.lineWidth = BORDER_WIDTH
     ctx.stroke()
   }
 

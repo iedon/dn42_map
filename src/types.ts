@@ -23,6 +23,7 @@ export interface RawNode {
   asn: number
   desc: string
   routes: RawRoute[]
+  routes_multicast: RawRoute[]
   centrality: RawCentrality
 }
 
@@ -50,6 +51,7 @@ export interface MapNode {
   desc: string
   label: string
   routes: string[]
+  routesMulticast: string[]
   centrality: RawCentrality
   peers: Set<number>
   size: number
@@ -75,9 +77,9 @@ export interface Viewport {
   bottom: number
 }
 
-export type LoadingState = 'fetching' | 'parsing' | 'rendering'
+export type LoadingState = 'fetching' | 'parsing' | 'rendering' | 'done'
 
-export type AfFilter = 0 | 1 | 2 | 4 | 8
+export type AfFilter = number
 
 export interface MyIpData {
   ip?: string

@@ -39,6 +39,8 @@
     "whoisError": "नेटवर्क समस्या या ASN नहीं मिला।",
     "revealExplorer": "DN42 रजिस्ट्री एक्सप्लोरर में देखें",
     "routes": "मार्ग ({count})",
+    "unicast": "यूनिकास्ट",
+    "multicast": "मल्टीकास्ट",
     "registry": "रजिस्ट्री",
     "graph": "ग्राफ",
     "show": "दिखाएं",

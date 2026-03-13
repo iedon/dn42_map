@@ -10,6 +10,7 @@ message Node {
   string desc = 2;
   repeated Route routes = 3;
   Centrality centrality = 4;
+  repeated Route routes_multicast = 5;
 }
 
 // Centrality stores the centrality metrics of a node

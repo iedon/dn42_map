@@ -29,10 +29,11 @@ import (
 
 // JSONNode represents a node in JSON format
 type JSONNode struct {
-	ASN        uint32   `json:"asn"`
-	Desc       string   `json:"desc"`
-	Routes     []string `json:"routes"`
-	Centrality struct {
+	ASN             uint32   `json:"asn"`
+	Desc            string   `json:"desc"`
+	Routes          []string `json:"routes"`
+	RoutesMulticast []string `json:"routesMulticast"`
+	Centrality      struct {
 		Degree      float64 `json:"degree"`
 		Betweenness float64 `json:"betweenness"`
 		Closeness   float64 `json:"closeness"`
@@ -72,17 +73,30 @@ func NewServer(config *Config) *Server {
 	}
 }
 
-func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
-	urls := []string{config.MRTCollector.IPv4MRTDumpURL, config.MRTCollector.IPv6MRTDumpURL}
+// MRTDownload represents a downloaded MRT file with its source metadata
+type MRTDownload struct {
+	Data        []byte
+	IsMulticast bool
+}
+
+func downloadMRTFiles(ctx context.Context, config *Config) ([]MRTDownload, error) {
+	type urlEntry struct {
+		URL         string
+		IsMulticast bool
+	}
+	entries := []urlEntry{
+		{URL: config.MRTCollector.IPv4MRTDumpURL, IsMulticast: false},
+		{URL: config.MRTCollector.IPv6MRTDumpURL, IsMulticast: false},
+	}
 	if config.MRTCollector.IPv4MulticastMRTDumpURL != "" {
-		urls = append(urls, config.MRTCollector.IPv4MulticastMRTDumpURL)
+		entries = append(entries, urlEntry{URL: config.MRTCollector.IPv4MulticastMRTDumpURL, IsMulticast: true})
 	}
 	if config.MRTCollector.IPv6MulticastMRTDumpURL != "" {
-		urls = append(urls, config.MRTCollector.IPv6MulticastMRTDumpURL)
+		entries = append(entries, urlEntry{URL: config.MRTCollector.IPv6MulticastMRTDumpURL, IsMulticast: true})
 	}
-	results := make([][]byte, 0, len(urls))
-	errCh := make(chan error, len(urls))
-	dataCh := make(chan []byte, len(urls))
+	results := make([]MRTDownload, 0, len(entries))
+	errCh := make(chan error, len(entries))
+	dataCh := make(chan MRTDownload, len(entries))
 
 	// Create a custom HTTP client with custom DNS if specified
 	tr := &http.Transport{
@@ -117,14 +131,14 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 	}
 
 	var wg sync.WaitGroup
-	for _, url := range urls {
+	for _, entry := range entries {
 		wg.Add(1)
-		go func(url string) {
+		go func(entry urlEntry) {
 			defer wg.Done()
 
-			req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", entry.URL, nil)
 			if err != nil {
-				errCh <- fmt.Errorf("failed to create request for %s: %v", url, err)
+				errCh <- fmt.Errorf("failed to create request for %s: %v", entry.URL, err)
 				return
 			}
 
@@ -134,13 +148,13 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				errCh <- fmt.Errorf("failed to download %s: %v", url, err)
+				errCh <- fmt.Errorf("failed to download %s: %v", entry.URL, err)
 				return
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				errCh <- fmt.Errorf("unexpected status code %d for %s", resp.StatusCode, url)
+				errCh <- fmt.Errorf("unexpected status code %d for %s", resp.StatusCode, entry.URL)
 				return
 			}
 
@@ -160,17 +174,17 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([][]byte, error) {
 					break
 				}
 				if err != nil {
-					errCh <- fmt.Errorf("failed to decompress %s: %v", url, err)
+					errCh <- fmt.Errorf("failed to decompress %s: %v", entry.URL, err)
 					return
 				}
 			}
 
-			// Send the decompressed data
-			dataCh <- buffer.Bytes()
+			// Send the decompressed data with source tag
+			dataCh <- MRTDownload{Data: buffer.Bytes(), IsMulticast: entry.IsMulticast}
 
 			// Clear the buffer to help GC
 			buffer.Reset()
-		}(url)
+		}(entry)
 	}
 
 	// Wait for all downloads to complete
@@ -213,17 +227,17 @@ func (s *Server) generateMap() {
 	results := make(chan *mrt.Result, len(mrtData))
 	var wg sync.WaitGroup
 
-	for _, data := range mrtData {
+	for _, dl := range mrtData {
 		wg.Add(1)
-		go func(data []byte) {
+		go func(dl MRTDownload) {
 			defer wg.Done()
-			result, err := processor.Process(data)
+			result, err := processor.Process(dl.Data, dl.IsMulticast)
 			if err != nil {
 				log.Printf("Error processing MRT data: %v\n", err)
 				return
 			}
 			results <- result
-		}(data)
+		}(dl)
 	}
 
 	// Wait for all processing to complete and close the channel
@@ -310,8 +324,10 @@ func checkIfModified(r *http.Request, lastModified time.Time) bool {
 	return true
 }
 
-// sendJSONResponse sends the graph data as JSON
+// sendJSONResponse sends the graph data as JSON using streaming encoder
 func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
 
 	// Opening object
 	if _, err := w.Write([]byte{'{'}); err != nil {
@@ -319,21 +335,27 @@ func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
 	}
 
 	// Metadata
-	if _, err := w.Write([]byte(`"metadata":{`)); err != nil {
+	if _, err := w.Write([]byte(`"metadata":`)); err != nil {
 		return err
 	}
 
-	if _, err := w.Write(fmt.Appendf(nil,
-		`"vendor":"%s","generated_timestamp":%d,"data_timestamp":%d,"version":%d},`,
-		s.graph.Metadata.Vendor,
-		s.graph.Metadata.GeneratedTimestamp,
-		s.graph.Metadata.DataTimestamp,
-		s.graph.Metadata.Version)); err != nil {
+	metadata := struct {
+		Vendor             string `json:"vendor"`
+		GeneratedTimestamp uint64 `json:"generated_timestamp"`
+		DataTimestamp      uint64 `json:"data_timestamp"`
+		Version            uint32 `json:"version"`
+	}{
+		Vendor:             s.graph.Metadata.Vendor,
+		GeneratedTimestamp: s.graph.Metadata.GeneratedTimestamp,
+		DataTimestamp:      s.graph.Metadata.DataTimestamp,
+		Version:            s.graph.Metadata.Version,
+	}
+	if err := enc.Encode(metadata); err != nil {
 		return err
 	}
 
 	// Nodes array
-	if _, err := w.Write([]byte(`"nodes":[`)); err != nil {
+	if _, err := w.Write([]byte(`,"nodes":[`)); err != nil {
 		return err
 	}
 
@@ -343,15 +365,7 @@ func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
 				return err
 			}
 		}
-
-		jsonNode := s.convertNodeToJSON(node, false)
-
-		b, err := json.Marshal(jsonNode)
-		if err != nil {
-			return err
-		}
-
-		if _, err := w.Write(b); err != nil {
+		if err := enc.Encode(s.convertNodeToJSON(node, false)); err != nil {
 			return err
 		}
 	}
@@ -367,8 +381,7 @@ func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
 				return err
 			}
 		}
-
-		linkJSON := struct {
+		if err := enc.Encode(struct {
 			Source uint32 `json:"source"`
 			Target uint32 `json:"target"`
 			Af     uint32 `json:"af"`
@@ -376,14 +389,7 @@ func (s *Server) sendJSONResponse(w http.ResponseWriter) error {
 			Source: link.Source,
 			Target: link.Target,
 			Af:     link.Af,
-		}
-
-		b, err := json.Marshal(linkJSON)
-		if err != nil {
-			return err
-		}
-
-		if _, err := w.Write(b); err != nil {
+		}); err != nil {
 			return err
 		}
 	}
@@ -417,33 +423,42 @@ func readWhois(registryPath string, asn uint32) string {
 	return string(data)
 }
 
+// formatRoute converts a protobuf Route to a string representation
+func formatRoute(route *pb.Route) string {
+	switch ip := route.Ip.(type) {
+	case *pb.Route_Ipv4:
+		return fmt.Sprintf("%d.%d.%d.%d/%d",
+			(ip.Ipv4>>24)&0xFF,
+			(ip.Ipv4>>16)&0xFF,
+			(ip.Ipv4>>8)&0xFF,
+			ip.Ipv4&0xFF,
+			route.Length)
+	case *pb.Route_Ipv6:
+		ipv6 := make(net.IP, 16)
+		binary.BigEndian.PutUint32(ipv6[0:4], ip.Ipv6.HighH32)
+		binary.BigEndian.PutUint32(ipv6[4:8], ip.Ipv6.HighL32)
+		binary.BigEndian.PutUint32(ipv6[8:12], ip.Ipv6.LowH32)
+		binary.BigEndian.PutUint32(ipv6[12:16], ip.Ipv6.LowL32)
+		return fmt.Sprintf("%s/%d", ipv6.String(), route.Length)
+	}
+	return ""
+}
+
 // convertNodeToJSON converts a protobuf Node to JSONNode
 func (s *Server) convertNodeToJSON(node *pb.Node, includeWhois bool) JSONNode {
 	jsonNode := JSONNode{
-		ASN:    node.Asn,
-		Desc:   node.Desc,
-		Routes: make([]string, len(node.Routes)),
+		ASN:             node.Asn,
+		Desc:            node.Desc,
+		Routes:          make([]string, len(node.Routes)),
+		RoutesMulticast: make([]string, len(node.RoutesMulticast)),
 	}
 
 	for j, route := range node.Routes {
-		var ipStr string
-		switch ip := route.Ip.(type) {
-		case *pb.Route_Ipv4:
-			ipStr = fmt.Sprintf("%d.%d.%d.%d/%d",
-				(ip.Ipv4>>24)&0xFF,
-				(ip.Ipv4>>16)&0xFF,
-				(ip.Ipv4>>8)&0xFF,
-				ip.Ipv4&0xFF,
-				route.Length)
-		case *pb.Route_Ipv6:
-			ipv6 := make(net.IP, 16)
-			binary.BigEndian.PutUint32(ipv6[0:4], ip.Ipv6.HighH32)
-			binary.BigEndian.PutUint32(ipv6[4:8], ip.Ipv6.HighL32)
-			binary.BigEndian.PutUint32(ipv6[8:12], ip.Ipv6.LowH32)
-			binary.BigEndian.PutUint32(ipv6[12:16], ip.Ipv6.LowL32)
-			ipStr = fmt.Sprintf("%s/%d", ipv6.String(), route.Length)
-		}
-		jsonNode.Routes[j] = ipStr
+		jsonNode.Routes[j] = formatRoute(route)
+	}
+
+	for j, route := range node.RoutesMulticast {
+		jsonNode.RoutesMulticast[j] = formatRoute(route)
 	}
 
 	jsonNode.Centrality.Degree = node.Centrality.Degree

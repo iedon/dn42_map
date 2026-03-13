@@ -104,6 +104,10 @@
   user-select: none;
   min-width: 32px;
 
+  .af-mcast {
+    display: inline-block;
+  }
+
   &:hover {
     color: $accent-orange-light;
   }

@@ -14,16 +14,20 @@
   </template>
 
   <!-- Routes -->
-  <p class="emphasized">{{ $t('nodeDetail.routes', { count: node.routes.length }) }}</p>
+  <p class="emphasized">{{ $t('nodeDetail.routes', { count: mergedRoutes.length }) }}</p>
   <div class="whois">
-    <table>
+    <table class="route-table">
       <tbody>
-        <tr v-for="route in node.routes" :key="route">
-          <td class="mono">{{ route }}</td>
+        <tr v-for="r in mergedRoutes" :key="r.route">
+          <td class="mono">
+            <span v-if="r.u" class="route-tag" :data-tooltip="$t('nodeDetail.unicast')">U</span>
+            <span v-if="r.m" class="route-tag route-tag-mcast" :data-tooltip="$t('nodeDetail.multicast')">M</span>
+            {{ r.route }}
+          </td>
           <td class="right">
-            <a :href="`${DN42.explorerUrl}${route.replace('/', '_')}`" target="_blank">{{ $t('nodeDetail.registry') }}</a>&nbsp;&nbsp;
-            <a :href="`${DN42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(route)}&asn=${DN42.routeGraphInitiateAsn}`" target="_blank">{{ $t('nodeDetail.graph') }}</a>&nbsp;&nbsp;
-            <a :href="`${DN42.queryRoutesUrl}${route}`" target="_blank">{{ $t('nodeDetail.show') }}</a>
+            <a :href="`${DN42.explorerUrl}${r.route.replace('/', '_')}`" target="_blank">{{ $t('nodeDetail.registry') }}</a>&nbsp;&nbsp;
+            <a :href="`${DN42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(r.route)}&asn=${DN42.routeGraphInitiateAsn}`" target="_blank">{{ $t('nodeDetail.graph') }}</a>&nbsp;&nbsp;
+            <a :href="`${DN42.queryRoutesUrl}${r.route}`" target="_blank">{{ $t('nodeDetail.show') }}</a>
           </td>
         </tr>
       </tbody>
@@ -37,7 +41,7 @@
       type="text"
       class="table-search"
       :placeholder="$t('nodeDetail.searchNeighbors')"
-      @input="neighborsQuery = ($event.target as HTMLInputElement).value"
+      @input="onNeighborSearch"
     >
   </div>
   <SortableTable
@@ -52,6 +56,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { debounce } from '@/utils/timing'
 import CentralityCard from './CentralityCard.vue'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
@@ -72,7 +77,21 @@ const emit = defineEmits<{
 
 const { state } = useMapStore()
 
+const mergedRoutes = computed(() => {
+  const map = new Map<string, { u: boolean, m: boolean }>()
+  for (const r of props.node.routes) map.set(r, { u: true, m: false })
+  for (const r of props.node.routesMulticast) {
+    const e = map.get(r)
+    if (e) e.m = true
+    else map.set(r, { u: false, m: true })
+  }
+  return [...map.entries()].map(([route, f]) => ({ route, ...f }))
+})
+
 const neighborsQuery = ref('')
+const onNeighborSearch = debounce((e: Event) => {
+  neighborsQuery.value = (e.target as HTMLInputElement).value
+}, 200)
 const whoisLoading = ref(false)
 const whoisError = ref(false)
 const whoisHtml = ref('')
@@ -117,7 +136,7 @@ async function loadWhois(asn: number) {
 }
 
 function parseWhois(whois: string): string {
-  const urlRegex = /(https?:\/\/)([\w=?.\/&-]+)/g
+  const urlRegex = /(https?:\/\/)([\w=?.\/&@#~%+:;!,()-]+)/g
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
 
   let remarks = '<div class="remarks">'

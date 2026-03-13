@@ -7,9 +7,10 @@ export const MAP_VERSION = 2
 export const RENDER = {
   pixelRatio: window.devicePixelRatio || 1,
   d3force: {
-    linkDistance: 100,
-    manyBodyStrength: -500,
-    alphaDecay: 0.05,
+    linkDistance: 100, // Base distance for links at filterRatio=1; actual distance is scaled by filterRatio
+    manyBodyStrength: -500, // Negative for repulsion, positive for attraction
+    alphaDecay: 0.05, // Faster decay for quicker stabilization, since we don't need long-term animation
+    filterRatioMin: 0.6, // Minimum force strength ratio when AF filter is applied (0 to 1)
   },
   canvas: {
     zoom: {
@@ -41,7 +42,7 @@ export const RENDER = {
         maxLabelsInView: 80, // Maximum number of labels to render at once
         importanceThresholdRange: [500, 50] as [number, number], // Importance score range for medium zoom levels
       },
-    maxFPS: 75,
+    maxFPS: 65,
   },
   link: {
     colorDefault: '#1d5232',

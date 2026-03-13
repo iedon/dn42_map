@@ -39,6 +39,8 @@
     "whoisError": "Sự cố mạng hoặc không tìm thấy ASN.",
     "revealExplorer": "Hiển thị trong DN42 Registry Explorer",
     "routes": "Tuyến ({count})",
+    "unicast": "Unicast",
+    "multicast": "Multicast",
     "registry": "Đăng ký",
     "graph": "Biểu đồ",
     "show": "Hiển thị",

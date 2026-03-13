@@ -39,6 +39,8 @@
     "whoisError": "Problema di rete o ASN non trovato.",
     "revealExplorer": "Mostra nel DN42 Registry Explorer",
     "routes": "Rotte ({count})",
+    "unicast": "Unicast",
+    "multicast": "Multicast",
     "registry": "Registro",
     "graph": "Grafico",
     "show": "Mostra",

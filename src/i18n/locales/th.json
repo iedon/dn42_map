@@ -39,6 +39,8 @@
     "whoisError": "ปัญหาเครือข่ายหรือไม่พบ ASN",
     "revealExplorer": "แสดงใน DN42 Registry Explorer",
     "routes": "เส้นทาง ({count})",
+    "unicast": "ยูนิแคสต์",
+    "multicast": "มัลติแคสต์",
     "registry": "รีจิสทรี",
     "graph": "กราฟ",
     "show": "แสดง",

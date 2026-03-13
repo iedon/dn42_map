@@ -39,6 +39,8 @@
     "whoisError": "Проблема сети или ASN не найден.",
     "revealExplorer": "Открыть в обозревателе реестра DN42",
     "routes": "Маршруты ({count})",
+    "unicast": "Юникаст",
+    "multicast": "Мультикаст",
     "registry": "Реестр",
     "graph": "Граф",
     "show": "Показать",

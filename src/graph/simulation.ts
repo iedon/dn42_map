@@ -7,15 +7,17 @@ export function createSimulation(
   links: MapLink[],
   onTick: () => void,
   onEnd: () => void,
+  getFilterRatio: () => number = () => 1,
 ) {
   const sim = forceSimulation<MapNode>(nodes)
     .force(
       'link',
       forceLink<MapNode, MapLink>(links)
         .id(d => d.asn as unknown as string)
-        .distance(RENDER.d3force.linkDistance),
+        .distance(() => RENDER.d3force.linkDistance * getFilterRatio()),
     )
-    .force('charge', forceManyBody().strength(RENDER.d3force.manyBodyStrength))
+    .force('charge', forceManyBody<MapNode>()
+      .strength(() => RENDER.d3force.manyBodyStrength * getFilterRatio()))
     .force('center', forceCenter(innerWidth / 2, innerHeight / 2))
     .alphaDecay(RENDER.d3force.alphaDecay)
 

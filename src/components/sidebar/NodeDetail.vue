@@ -9,7 +9,7 @@
     <p>{{ $t('nodeDetail.whoisError') }}</p>
   </template>
   <template v-else-if="whoisHtml">
-    <a :href="`${DN42.explorerUrl}${node.asn}`" target="_blank">{{ $t('nodeDetail.revealExplorer') }}</a><br>
+    <a :href="`${DN42.explorerUrl}${node.asn}`" target="_blank" class="reval">{{ $t('nodeDetail.revealExplorer') }}</a><br>
     <div class="whois" v-html="whoisHtml" />
   </template>
 

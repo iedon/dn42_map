@@ -66,6 +66,10 @@
       font-weight: bold;
       color: $accent-link-hover;
     }
+
+    &.reval {
+      float: right;
+    }
   }
 }
 
@@ -170,6 +174,7 @@
   max-width: $sidebar-width;
   overflow: hidden;
   color: $text-primary;
+  width: 100%;
 
   table {
     width: 100%;
@@ -234,7 +239,6 @@
     text-align: left;
   }
 
-  td.center { text-align: center; }
   td.right { text-align: right; }
 
   td.rank, td.asn, td.name, td.index, td.to, td.from {

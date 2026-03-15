@@ -169,7 +169,10 @@ function onKeyDown(e: KeyboardEvent) {
     if (timeMachineOpen.value) timeMachineOpen.value = false
     nav.clearSelection()
     e.preventDefault()
-  } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+  }
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
+  if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
     toggleRanking()
     e.preventDefault()
   } else if (e.key === 'h' && !e.ctrlKey && !e.metaKey) {

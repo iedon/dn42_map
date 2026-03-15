@@ -84,7 +84,7 @@
 import { reactive, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_NAMES } from '@/i18n'
-import { AF_OPTIONS, AF_LABEL_KEYS } from '@/stores/mapStore'
+import { AF_OPTIONS, AF_LABEL_KEYS } from '@/constants'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from '@/utils/settings'
 import type { AppSettings } from '@/types'
 

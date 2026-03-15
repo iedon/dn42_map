@@ -20,6 +20,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { debounce } from '@/utils/timing'
+import { TIMING } from '@/constants'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
 import type { MapNode } from '@/types'
@@ -37,7 +38,7 @@ const emit = defineEmits<{
 const query = ref('')
 const onQueryInput = debounce((e: Event) => {
   query.value = (e.target as HTMLInputElement).value
-}, 200)
+}, TIMING.searchDebounceMs)
 
 const columns = computed<Column[]>(() => [
   { key: 'rank', label: t('columns.rank'), type: 'number' },

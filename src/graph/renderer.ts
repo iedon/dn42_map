@@ -19,6 +19,7 @@ const BORDER_COLOR = RENDER.node.borderColor
 const BORDER_WIDTH = RENDER.node.borderWidth
 const VIEWPORT_MARGIN = RENDER.canvas.viewportMargin
 const TWO_PI = Math.PI * 2
+const LABEL_GAP = RENDER.node.labelGapPx
 const { baseZoomThreshold, highZoomThreshold, maxLabelsInView, importanceThresholdRange } = RENDER.node.labelCulling
 
 function calcViewport(canvas: HTMLCanvasElement, t: ZoomTransform): Viewport {
@@ -168,7 +169,7 @@ export function renderFrame(
 
     for (const node of eligibleLabels) {
       ctx.font = node === hoveredNode ? node.labelFontBold : node.labelFontNormal
-      ctx.fillText(node.label, node.x, node.y + node.size + node.labelFontSize / 2 + 4)
+      ctx.fillText(node.label, node.x, node.y + node.size + node.labelFontSize / 2 + LABEL_GAP)
     }
   }
 

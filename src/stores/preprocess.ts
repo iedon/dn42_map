@@ -1,13 +1,14 @@
 import type { RawGraph, MapNode, MapLink } from '@/types'
-import { ipv4FromUint32, ipv6FromQuad32 } from '@/utils/ip'
+import { formatRawRoutes } from '@/utils/routes'
 import { scaleSqrt } from '@/utils/scale'
 import { RENDER } from '@/constants'
 
-const SUFFIX_PATTERNS = ['-DN42', '-MNT', '-AS', '-NEONETWORK', 'ICVPN-', '-CRXN']
+/** Network suffixes to strip from node descriptions for cleaner labels */
+const LABEL_SUFFIX_PATTERNS = ['-DN42', '-MNT', '-AS', '-NEONETWORK', 'ICVPN-', '-CRXN']
 
 function cleanLabel(desc: string): string {
   let label = desc
-  for (const p of SUFFIX_PATTERNS) label = label.replace(p, '')
+  for (const p of LABEL_SUFFIX_PATTERNS) label = label.replace(p, '')
   return label
 }
 
@@ -20,36 +21,8 @@ export function preprocessDataset(data: RawGraph) {
   for (const raw of data.nodes) {
     const asn = raw.asn || 0
     const label = cleanLabel(raw.desc)
-
-    // Parse unicast routes — sort raw arrays in-place before formatting to avoid tuple allocations
-    const routes: string[] = []
-    if (raw.routes?.length) {
-      const v4: typeof raw.routes = []
-      const v6: typeof raw.routes = []
-      for (const route of raw.routes) {
-        if (route.ipv4 != null) v4.push(route)
-        else if (route.ipv6 != null) v6.push(route)
-      }
-      v4.sort((a, b) => a.length - b.length)
-      v6.sort((a, b) => a.length - b.length)
-      for (const r of v4) routes.push(`${ipv4FromUint32(r.ipv4!)}/${r.length}`)
-      for (const r of v6) routes.push(`${ipv6FromQuad32(r.ipv6!.high_h32, r.ipv6!.high_l32, r.ipv6!.low_h32, r.ipv6!.low_l32)}/${r.length}`)
-    }
-
-    // Parse multicast routes
-    const routesMulticast: string[] = []
-    if (raw.routes_multicast?.length) {
-      const v4: typeof raw.routes_multicast = []
-      const v6: typeof raw.routes_multicast = []
-      for (const route of raw.routes_multicast) {
-        if (route.ipv4 != null) v4.push(route)
-        else if (route.ipv6 != null) v6.push(route)
-      }
-      v4.sort((a, b) => a.length - b.length)
-      v6.sort((a, b) => a.length - b.length)
-      for (const r of v4) routesMulticast.push(`${ipv4FromUint32(r.ipv4!)}/${r.length}`)
-      for (const r of v6) routesMulticast.push(`${ipv6FromQuad32(r.ipv6!.high_h32, r.ipv6!.high_l32, r.ipv6!.low_h32, r.ipv6!.low_l32)}/${r.length}`)
-    }
+    const routes = formatRawRoutes(raw.routes)
+    const routesMulticast = formatRawRoutes(raw.routes_multicast)
 
     const centrality = {
       degree: raw.centrality?.degree || 0,

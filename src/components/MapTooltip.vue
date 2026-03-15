@@ -3,13 +3,13 @@
     <div class="node-info">
       <div class="title">
         <span v-if="source" class="tag">{{ source }}</span>
-        <b>{{ cleanDesc }} (AS{{ node.asn }})</b>
+        <b>{{ node.label }} (AS{{ node.asn }})</b>
       </div>
       <p>{{ $t('tooltip.neighbors', { count: node.peers.size }) }}</p>
-      <template v-if="mergedRoutes.length">
+      <template v-if="mergedRouteList.length">
         <p>{{ $t('tooltip.advertisedRoutes') }}</p>
         <ul>
-          <li v-for="r in mergedRoutes" :key="r.route">
+          <li v-for="r in mergedRouteList" :key="r.route">
             <span v-if="r.u" class="route-tag" :title="$t('nodeDetail.unicast')">U</span>
             <span v-if="r.m" class="route-tag route-tag-mcast" :title="$t('nodeDetail.multicast')">M</span>
             {{ r.route }}
@@ -21,8 +21,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
+import { RENDER } from '@/constants'
 import type { MapNode } from '@/types'
+import { mergeRoutes } from '@/utils/routes'
+
+/** Network identifier patterns to detect source network from node description */
+const NETWORK_TAGS: [string, string][] = [
+  ['-DN42', 'DN42'],
+  ['-NEONETWORK', 'NEONETWORK'],
+  ['ICVPN-', 'ICVPN'],
+  ['-CRXN', 'CRXN'],
+]
 
 const props = defineProps<{
   node: MapNode | null
@@ -31,38 +41,19 @@ const props = defineProps<{
 }>()
 
 const position = computed(() => ({
-  left: `${props.mouseX + 10}px`,
-  top: `${props.mouseY + 10}px`,
+  left: `${props.mouseX + RENDER.tooltip.offsetPx}px`,
+  top: `${props.mouseY + RENDER.tooltip.offsetPx}px`,
 }))
 
-const mergedRoutes = computed(() => {
-  if (!props.node) return []
-  const map = new Map<string, { u: boolean, m: boolean }>()
-  for (const r of props.node.routes) map.set(r, { u: true, m: false })
-  for (const r of props.node.routesMulticast) {
-    const e = map.get(r)
-    if (e) e.m = true
-    else map.set(r, { u: false, m: true })
-  }
-  return [...map.entries()].map(([route, f]) => ({ route, ...f }))
-})
+const mergedRouteList = computed(() =>
+  props.node ? mergeRoutes(props.node.routes, props.node.routesMulticast) : [],
+)
 
 const source = computed(() => {
   if (!props.node) return ''
-  const d = props.node.desc
-  if (d.includes('-DN42')) return 'DN42'
-  if (d.includes('-NEONETWORK')) return 'NEONETWORK'
-  if (d.includes('ICVPN-')) return 'ICVPN'
-  if (d.includes('-CRXN')) return 'CRXN'
+  for (const [pattern, name] of NETWORK_TAGS) {
+    if (props.node.desc.includes(pattern)) return name
+  }
   return ''
-})
-
-const cleanDesc = computed(() => {
-  if (!props.node) return ''
-  return props.node.desc
-    .replace('-DN42', '')
-    .replace('-NEONETWORK', '')
-    .replace('ICVPN-', '')
-    .replace('-CRXN', '')
 })
 </script>

@@ -1,6 +1,6 @@
 import { shallowReactive, shallowRef, triggerRef } from 'vue'
 import { zoomIdentity, type ZoomTransform, type Simulation, type ForceLink } from 'd3'
-import { type MapNode, type MapLink, type AfFilter, type RawGraph, AF_FILTERS } from '@/types'
+import { type MapNode, type MapLink, type AfFilter, type RawGraph } from '@/types'
 import { preprocessDataset } from './preprocess'
 import { scaleSqrt } from '@/utils/scale'
 import { RENDER } from '@/constants'
@@ -41,37 +41,6 @@ const simulation = shallowRef<Simulation<MapNode, MapLink> | null>(null)
 // Canvas refs — non-reactive, set once
 let canvas: HTMLCanvasElement | null = null
 let ctx: CanvasRenderingContext2D | null = null
-
-// Links from backend carry a bitmask (e.g. af=5 means v4 unicast + v4 multicast).
-// Compound values (3=all unicast, 12=all multicast) match via bitwise &.
-export const AF_OPTIONS: AfFilter[] = [
-  AF_FILTERS.ALL,
-  AF_FILTERS.AF_ALL_UCAST,
-  AF_FILTERS.AF_ALL_MCAST,
-  AF_FILTERS.AF_UCAST_IPV4,
-  AF_FILTERS.AF_UCAST_IPV6,
-  AF_FILTERS.AF_MCAST_IPV4,
-  AF_FILTERS.AF_MCAST_IPV6,
-]
-
-export const AF_LABEL_KEYS: Record<number, string> = {
-  [AF_FILTERS.ALL]: 'af.all',
-  [AF_FILTERS.AF_ALL_UCAST]: 'af.allUcast',
-  [AF_FILTERS.AF_ALL_MCAST]: 'af.allMcast',
-  [AF_FILTERS.AF_UCAST_IPV4]: 'af.ucastIpv4',
-  [AF_FILTERS.AF_UCAST_IPV6]: 'af.ucastIpv6',
-  [AF_FILTERS.AF_MCAST_IPV4]: 'af.mcastIpv4',
-  [AF_FILTERS.AF_MCAST_IPV6]: 'af.mcastIpv6',
-}
-export const AF_TOOLTIP_KEYS: Record<number, string> = {
-  [AF_FILTERS.ALL]: 'af.tooltipAll',
-  [AF_FILTERS.AF_ALL_UCAST]: 'af.tooltipAllUcast',
-  [AF_FILTERS.AF_ALL_MCAST]: 'af.tooltipAllMcast',
-  [AF_FILTERS.AF_UCAST_IPV4]: 'af.tooltipUcastIpv4',
-  [AF_FILTERS.AF_UCAST_IPV6]: 'af.tooltipUcastIpv6',
-  [AF_FILTERS.AF_MCAST_IPV4]: 'af.tooltipMcastIpv4',
-  [AF_FILTERS.AF_MCAST_IPV6]: 'af.tooltipMcastIpv6',
-}
 
 function rebuildVisibleNodeAsns() {
   if (!state.afFilter) {

@@ -1,17 +1,36 @@
+import { AF_FILTERS, type AfFilter } from '@/types'
+
 const isDn42 = location.href.includes('.dn42')
 
-export const PAGE_TITLE = 'DN42 Realtime Network Map'
 export const BIN_VENDOR_MAGIC = 'IEDON.NET'
 export const MAP_VERSION = 2
 
+/** Timing constants for throttle, debounce, and animations */
+export const TIMING = {
+  pointerThrottleMs: 13,
+  resizeDebounceMs: 150,
+  searchDebounceMs: 200,
+  loadingFadeMs: 500,
+  navigateAnimationMs: 500,
+} as const
+
+/** Rendering and simulation configuration */
 export const RENDER = {
   pixelRatio: window.devicePixelRatio || 1,
+
   d3force: {
-    linkDistance: 100, // Base distance for links at filterRatio=1; actual distance is scaled by filterRatio
-    manyBodyStrength: -500, // Negative for repulsion, positive for attraction
-    alphaDecay: 0.05, // Faster decay for quicker stabilization, since we don't need long-term animation
-    filterRatioMin: 0.6, // Minimum force strength ratio when AF filter is applied (0 to 1)
+    linkDistance: 100,
+    manyBodyStrength: -500,
+    alphaDecay: 0.05,
+    filterRatioMin: 0.6,
+    /** Alpha threshold below which the simulation is considered settled */
+    settleAlpha: 0.02,
+    /** Alpha target during node drag (scaled by filterRatio) */
+    dragAlphaTarget: 0.1,
+    /** Alpha to reheat simulation on window resize */
+    resizeReheatAlpha: 0.5,
   },
+
   canvas: {
     zoom: {
       min: 0.3,
@@ -19,9 +38,20 @@ export const RENDER = {
       initial: 1.45,
     },
     backgroundColor: '#333',
-    // viewportMargin: 100,
-    viewportMargin: 0, // Extra margin for smooth viewport culling transitions
+    accentColor: '#ce8815',
+    viewportMargin: 0,
   },
+
+  tooltip: {
+    /** Pixel offset from cursor to tooltip position */
+    offsetPx: 10,
+  },
+
+  loading: {
+    /** Percentage at or above which to snap to 100% */
+    snapThreshold: 98,
+  },
+
   node: {
     minSize: 3,
     maxSize: 16,
@@ -36,14 +66,17 @@ export const RENDER = {
     labelFontSizePx: 7,
     labelFontSizeMaxPx: 14,
     labelFontFamily: '-apple-system,Roboto,Noto,"Segoe UI",Arial,sans-serif',
-      labelCulling: {
-        baseZoomThreshold: 0.65, // Minimum zoom to start showing any labels
-        highZoomThreshold: 2.0, // Zoom level to show all labels in viewport
-        maxLabelsInView: 80, // Maximum number of labels to render at once
-        importanceThresholdRange: [500, 50] as [number, number], // Importance score range for medium zoom levels
-      },
+    /** Vertical gap (px) between node circle bottom and label text */
+    labelGapPx: 4,
+    labelCulling: {
+      baseZoomThreshold: 0.65,
+      highZoomThreshold: 2.0,
+      maxLabelsInView: 80,
+      importanceThresholdRange: [500, 50] as [number, number],
+    },
     maxFPS: 65,
   },
+
   link: {
     colorDefault: '#1d5232',
     colorEmphasize: '#ce8815',
@@ -52,8 +85,11 @@ export const RENDER = {
   },
 } as const
 
+/** DN42 network-specific URLs and configuration */
 export const DN42 = {
   accessingFromDn42: isDn42,
+  /** Common ASN prefix for DN42 autonomous systems */
+  baseAsnPrefix: '424242',
   whoisApi: isDn42 ? 'https://map.dn42/asn/' : 'https://api.iedon.com/dn42/asn/',
   explorerUrl: isDn42 ? 'http://explorer.burble.dn42/?#/' : 'https://explorer.burble.com/?#/',
   homeUrl: isDn42 ? 'https://wiki.dn42/' : 'https://dn42.jp/',
@@ -69,3 +105,37 @@ export const DN42 = {
   toolboxUrl: 'https://dn42.g-load.eu/toolbox/',
   timeMachineBinUrlPrefix: 'https://mrt.iedon.net/map',
 } as const
+
+// -- Address Family filter display data --
+
+export const AF_OPTIONS: AfFilter[] = [
+  AF_FILTERS.ALL,
+  AF_FILTERS.AF_ALL_UCAST,
+  AF_FILTERS.AF_ALL_MCAST,
+  AF_FILTERS.AF_UCAST_IPV4,
+  AF_FILTERS.AF_UCAST_IPV6,
+  AF_FILTERS.AF_MCAST_IPV4,
+  AF_FILTERS.AF_MCAST_IPV6,
+]
+
+/** i18n keys for AF filter short labels */
+export const AF_LABEL_KEYS: Record<number, string> = {
+  [AF_FILTERS.ALL]: 'af.all',
+  [AF_FILTERS.AF_ALL_UCAST]: 'af.allUcast',
+  [AF_FILTERS.AF_ALL_MCAST]: 'af.allMcast',
+  [AF_FILTERS.AF_UCAST_IPV4]: 'af.ucastIpv4',
+  [AF_FILTERS.AF_UCAST_IPV6]: 'af.ucastIpv6',
+  [AF_FILTERS.AF_MCAST_IPV4]: 'af.mcastIpv4',
+  [AF_FILTERS.AF_MCAST_IPV6]: 'af.mcastIpv6',
+}
+
+/** i18n keys for AF filter tooltip descriptions */
+export const AF_TOOLTIP_KEYS: Record<number, string> = {
+  [AF_FILTERS.ALL]: 'af.tooltipAll',
+  [AF_FILTERS.AF_ALL_UCAST]: 'af.tooltipAllUcast',
+  [AF_FILTERS.AF_ALL_MCAST]: 'af.tooltipAllMcast',
+  [AF_FILTERS.AF_UCAST_IPV4]: 'af.tooltipUcastIpv4',
+  [AF_FILTERS.AF_UCAST_IPV6]: 'af.tooltipUcastIpv6',
+  [AF_FILTERS.AF_MCAST_IPV4]: 'af.tooltipMcastIpv4',
+  [AF_FILTERS.AF_MCAST_IPV6]: 'af.tooltipMcastIpv6',
+}

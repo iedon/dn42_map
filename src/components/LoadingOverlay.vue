@@ -11,6 +11,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { TIMING, RENDER } from '@/constants'
 import type { LoadingState } from '@/types'
 
 const { t } = useI18n()
@@ -37,7 +38,7 @@ const displayText = computed(() => {
 
 const percentage = computed(() => {
   let p = Math.max(0, Math.min(100, Math.round((1 - props.alpha) * 100)))
-  if (p >= 98) p = 100
+  if (p >= RENDER.loading.snapThreshold) p = 100
   return p
 })
 
@@ -45,13 +46,13 @@ const ringStyle = computed(() => {
   if (loadingState.value !== 'rendering') return {}
   const angle = (percentage.value / 100) * 360
   return {
-    background: `conic-gradient(from 0deg, #ce8815 0deg, #ce8815 ${angle}deg, transparent ${angle}deg)`,
+    background: `conic-gradient(from 0deg, ${RENDER.canvas.accentColor} 0deg, ${RENDER.canvas.accentColor} ${angle}deg, transparent ${angle}deg)`,
   }
 })
 
 function finish() {
   hiding.value = true
-  setTimeout(() => { visible.value = false }, 500)
+  setTimeout(() => { visible.value = false }, TIMING.loadingFadeMs)
 }
 
 function show() {

@@ -2,7 +2,7 @@ import { toRaw, type Ref } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { throttle } from '@/utils/timing'
 import type { MapNode } from '@/types'
-import { RENDER } from '@/constants'
+import { RENDER, TIMING } from '@/constants'
 
 const MIN_DIST_SQ = RENDER.node.maxSize * RENDER.node.maxSize
 
@@ -60,7 +60,7 @@ export function usePointer(opts: PointerOptions) {
     if (focusingNode) {
       draggingNode = focusingNode
       disableZoom()
-      store.getSimulation()?.alphaTarget(0.1 * store.state.filterRatio).restart()
+      store.getSimulation()?.alphaTarget(RENDER.d3force.dragAlphaTarget * store.state.filterRatio).restart()
       focusingNode = null
     }
 
@@ -91,7 +91,7 @@ export function usePointer(opts: PointerOptions) {
     } else {
       canvas.style.cursor = 'grabbing'
     }
-  }, 13)
+  }, TIMING.pointerThrottleMs)
 
   function onPointerDown(event: PointerEvent) {
     pointerIsDown = true

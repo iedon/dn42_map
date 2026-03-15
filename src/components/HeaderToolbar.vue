@@ -58,8 +58,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { DN42 } from '@/constants'
-import { AF_OPTIONS, AF_LABEL_KEYS, AF_TOOLTIP_KEYS } from '@/stores/mapStore'
+import { DN42, MAP_VERSION, AF_OPTIONS, AF_LABEL_KEYS, AF_TOOLTIP_KEYS } from '@/constants'
 import type { AfFilter } from '@/types'
 
 const { t } = useI18n()
@@ -82,7 +81,7 @@ const emit = defineEmits<{
 const searchInputRef = ref<HTMLInputElement>()
 const afDropdownOpen = ref(false)
 
-const showAfFilter = computed(() => props.mapVersion >= 2)
+const showAfFilter = computed(() => props.mapVersion >= MAP_VERSION)
 const afTooltip = computed(() => t(AF_TOOLTIP_KEYS[props.afFilter]))
 
 const plainAfLabel = computed(() => t(AF_LABEL_KEYS[props.afFilter]))

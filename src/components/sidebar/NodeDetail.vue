@@ -54,13 +54,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { debounce } from '@/utils/timing'
+import { mergeRoutes } from '@/utils/routes'
+import { parseWhoisHtml } from '@/utils/whois'
 import CentralityCard from './CentralityCard.vue'
 import SortableTable from './SortableTable.vue'
 import type { Column } from './SortableTable.vue'
-import { DN42 } from '@/constants'
+import { DN42, TIMING } from '@/constants'
 import { fetchWhoisData } from '@/api'
 import { useMapStore } from '@/stores/mapStore'
 import type { MapNode } from '@/types'
@@ -77,21 +79,14 @@ const emit = defineEmits<{
 
 const { state } = useMapStore()
 
-const mergedRoutes = computed(() => {
-  const map = new Map<string, { u: boolean, m: boolean }>()
-  for (const r of props.node.routes) map.set(r, { u: true, m: false })
-  for (const r of props.node.routesMulticast) {
-    const e = map.get(r)
-    if (e) e.m = true
-    else map.set(r, { u: false, m: true })
-  }
-  return [...map.entries()].map(([route, f]) => ({ route, ...f }))
-})
+const mergedRoutes = computed(() =>
+  mergeRoutes(props.node.routes, props.node.routesMulticast),
+)
 
 const neighborsQuery = ref('')
 const onNeighborSearch = debounce((e: Event) => {
   neighborsQuery.value = (e.target as HTMLInputElement).value
-}, 200)
+}, TIMING.searchDebounceMs)
 const whoisLoading = ref(false)
 const whoisError = ref(false)
 const whoisHtml = ref('')
@@ -125,7 +120,7 @@ async function loadWhois(asn: number) {
 
   try {
     const raw = await fetchWhoisData(asn)
-    const html = parseWhois(raw)
+    const html = parseWhoisHtml(raw)
     whoisCache.set(asn, html)
     whoisHtml.value = html
   } catch {
@@ -133,34 +128,6 @@ async function loadWhois(asn: number) {
   } finally {
     whoisLoading.value = false
   }
-}
-
-function parseWhois(whois: string): string {
-  const urlRegex = /(https?:\/\/)([\w=?.\/&@#~%+:;!,()-]+)/g
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-
-  let remarks = '<div class="remarks">'
-  const rows: string[] = []
-
-  for (const line of whois.split('\n')) {
-    const [k, v] = line.split(/:\x20(.+)?/, 2)
-    if (!k || !v) continue
-
-    const vv = v.trim()
-      .replace(urlRegex, "<a href='$1$2' target='_blank'>$1$2</a>")
-      .replace(emailRegex, email => `<a href="mailto:${email}">${email}</a>`)
-
-    if (k.trim() === 'remarks') {
-      if (!vv) continue
-      const remark = vv.replace(/(<a\b[^>]*>.*?<\/a>)|\x20/g, (_, g1) => g1 ? g1 : '&nbsp;')
-      remarks += `<p>${remark}</p>`
-    } else {
-      rows.push(`<tr><td class="key">${k.trim()}</td><td>${vv}</td></tr>`)
-    }
-  }
-  remarks += '</div>'
-
-  return `<table><tbody>${rows.join('')}</tbody></table>${remarks}`
 }
 
 watch(() => props.node.asn, asn => loadWhois(asn), { immediate: true })

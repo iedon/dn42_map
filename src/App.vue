@@ -10,27 +10,27 @@
     @open-time-machine="timeMachineOpen = true"
     @open-settings="settingsOpen = true"
     @set-af="onSetAf"
-    @search="onSearch"
+    @search="nav.onSearch"
   />
 
-  <SidebarPanel :open="sidebarOpen" :title="sidebarTitle" @close="closeSidebar">
+  <SidebarPanel :open="sidebarOpen" :title="sidebarTitle" @close="nav.clearSelection">
     <NodeDetail
       v-if="sidebarNode"
       :key="sidebarNode.asn"
       :node="sidebarNode"
-      @navigate-asn="navigateToAsn"
+      @navigate-asn="nav.navigateToAsn"
     />
     <RankingView
       v-else-if="showRanking"
       :nodes="store.state.nodes"
-      @navigate-asn="navigateToAsn"
+      @navigate-asn="nav.navigateToAsn"
     />
   </SidebarPanel>
 
   <canvas ref="canvasRef" class="map-canvas" />
 
   <MapTooltip :node="tooltipNode" :mouse-x="tooltipX" :mouse-y="tooltipY" />
-  <MyIpInfo @navigate-asn="navigateToAsn" />
+  <MyIpInfo @navigate-asn="nav.navigateToAsn" />
   <TimeMachine :visible="timeMachineOpen" :current-date="mrtDate" @close="timeMachineOpen = false" />
   <SettingsModal :visible="settingsOpen" @close="settingsOpen = false" @saved="onSettingsSaved" />
 </template>
@@ -43,9 +43,9 @@ import { fetchGraphData } from '@/api'
 import { useMapStore } from '@/stores/mapStore'
 import { createSimulation } from '@/graph/simulation'
 import { loadSettings } from '@/utils/settings'
-import { detectLocale } from '@/i18n'
-import i18n from '@/i18n'
+import { applyLocale } from '@/i18n'
 import { type MapNode, type LoadingState, type AppSettings, type AfFilter, AF_FILTERS } from '@/types'
+import { RENDER, MAP_VERSION } from '@/constants'
 
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import HeaderToolbar from '@/components/HeaderToolbar.vue'
@@ -60,7 +60,7 @@ import SettingsModal from '@/components/SettingsModal.vue'
 import { useCanvas } from '@/composables/useCanvas'
 import { useSidebar } from '@/composables/useSidebar'
 import { usePointer } from '@/composables/usePointer'
-import { MAP_VERSION } from './constants'
+import { useNavigation } from '@/composables/useNavigation'
 
 const { t } = useI18n()
 const store = useMapStore()
@@ -84,125 +84,74 @@ const tooltipNode = ref<MapNode | null>(null)
 const tooltipX = ref(0)
 const tooltipY = ref(0)
 
-// TimeMachine & Settings
+// Modal state
 const timeMachineOpen = ref(false)
 const settingsOpen = ref(false)
 
-// Settings
+// Settings & deferred state
 let appSettings = loadSettings()
 let pendingNavigateNode: MapNode | null = null
 let pendingAfFilter: AfFilter | null = null
 
 // ===== Composables =====
 
-const canvas = useCanvas(store)
+const canvasCtrl = useCanvas(store)
 const { sidebarOpen, sidebarNode, showRanking, sidebarTitle, openNodeSidebar, toggleRanking, closeSidebar } = useSidebar(t)
+
+const nav = useNavigation({
+  store,
+  canvas: canvasCtrl,
+  openNodeSidebar,
+  closeSidebar,
+  draw: () => draw(),
+  t: (key: string) => t(key),
+  onAfReset: (node) => {
+    nav.clearSelection()
+    // Node is hidden by current AF filter — reset to ALL and navigate after re-settle
+    pendingNavigateNode = node
+    drawEnabled = false
+    needsInitialScale = false
+    loadingState.value = 'rendering'
+    loadingRef.value?.show()
+    store.setAfFilter(AF_FILTERS.ALL)
+  },
+})
+
 const pointer = usePointer({
   store,
   sidebarOpen,
   tooltip: { node: tooltipNode, x: tooltipX, y: tooltipY },
   draw: () => draw(),
-  enableZoom: () => canvas.enableZoom(),
-  disableZoom: () => canvas.disableZoom(),
+  enableZoom: () => canvasCtrl.enableZoom(),
+  disableZoom: () => canvasCtrl.disableZoom(),
   onNodeClick: (node) => {
     store.setHoveredNode(node)
-    navigateToNode(node)
+    nav.navigateToNode(node)
     openNodeSidebar(node)
   },
-  onRightClick: () => clearSelection(),
+  onRightClick: () => nav.clearSelection(),
 })
 
 // ===== Drawing =====
 
 function draw() {
-  if (drawEnabled) canvas.draw()
-}
-
-// ===== Navigation =====
-
-function navigateToNode(node: MapNode) {
-  store.setHoveredNode(node)
-  if (location.hash !== `#${node.asn}`) location.hash = String(node.asn)
-  if (node.x !== undefined && node.y !== undefined) canvas.animateToNode(node)
-  document.title = `${node.desc} (AS${node.asn}) - ${t('pageTitle')}`
-  draw()
-}
-
-function isNodeVisible(node: MapNode): boolean {
-  return !store.state.visibleNodeAsns || store.state.visibleNodeAsns.has(node.asn)
-}
-
-function switchAfAndNavigate(node: MapNode) {
-  pendingNavigateNode = node
-  drawEnabled = false
-  needsInitialScale = false
-  loadingState.value = 'rendering'
-  loadingRef.value?.show()
-  store.setAfFilter(AF_FILTERS.ALL)
-}
-
-function navigateToAsn(asn: number) {
-  const node = store.state.nodeMap.get(asn.toString())
-  if (!node) return
-  if (!isNodeVisible(node)) { switchAfAndNavigate(node); return }
-  navigateToNode(node)
-  openNodeSidebar(node)
-}
-
-function resolveNode(query: string): MapNode | undefined {
-  const q = query.toLowerCase()
-  return store.state.nodeMap.get(q)
-    || (!query.startsWith('424242') ? store.state.nodeMap.get(`424242${q}`) : undefined)
-}
-
-function onSearch(value: string) {
-  const node = resolveNode(value)
-  if (!node) { alert(t('search.notFound')); return }
-  if (!isNodeVisible(node)) { switchAfAndNavigate(node); return }
-  navigateToNode(node)
-  openNodeSidebar(node)
-}
-
-function searchNodeByHash(hash: string) {
-  const node = resolveNode(hash)
-  if (!node) { clearSelection(); return }
-  if (!isNodeVisible(node)) { switchAfAndNavigate(node); return }
-  navigateToNode(node)
-  openNodeSidebar(node)
+  if (drawEnabled) canvasCtrl.draw()
 }
 
 // ===== State management =====
 
 function getCenterAsn() {
-    return appSettings.centerMode === 'custom' ? appSettings.centerAsn : undefined
-}
-
-function clearSelection() {
-  closeSidebar()
-  store.setHoveredNode(null)
-  draw()
-  if (location.hash) history.pushState('', document.title, location.pathname + location.search)
-  document.title = t('pageTitle')
+  return appSettings.centerMode === 'custom' ? appSettings.centerAsn : undefined
 }
 
 function onSetAf(af: AfFilter) {
-  clearSelection()
+  nav.clearSelection()
   if (loadingState.value === 'rendering') return
   drawEnabled = false
   needsInitialScale = true
   loadingState.value = 'rendering'
   loadingRef.value?.show()
   store.setAfFilter(af)
-}
-
-function applyLocale(locale: string) {
-  const resolved = locale || detectLocale()
-  const loc = i18n.global.locale as unknown as { value: string }
-  if (loc.value !== resolved) {
-    loc.value = resolved
-    document.documentElement.lang = resolved
-    document.title = t('pageTitle')
-  }
 }
 
 function onSettingsSaved(settings: AppSettings) {
@@ -218,35 +167,28 @@ function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     if (settingsOpen.value) settingsOpen.value = false
     if (timeMachineOpen.value) timeMachineOpen.value = false
-    clearSelection()
+    nav.clearSelection()
     e.preventDefault()
   } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
     toggleRanking()
     e.preventDefault()
   } else if (e.key === 'h' && !e.ctrlKey && !e.metaKey) {
-    canvas.setInitialScale(getCenterAsn())
+    canvasCtrl.setInitialScale(getCenterAsn())
     e.preventDefault()
   }
 }
 
 function onGestureStart(e: Event) { e.preventDefault() }
 
-function onHashChange() {
-  const hash = location.hash.slice(1)
-  if (hash && store.state.nodeMap.size) searchNodeByHash(hash)
-  else clearSelection()
-}
-
 // ===== Lifecycle =====
 
 onMounted(async () => {
-  // Apply saved locale
   applyLocale(appSettings.locale)
 
   document.addEventListener('gesturestart', onGestureStart)
   document.addEventListener('keydown', onKeyDown)
-  window.addEventListener('resize', canvas.onResize)
-  window.addEventListener('hashchange', onHashChange)
+  window.addEventListener('resize', canvasCtrl.onResize)
+  window.addEventListener('hashchange', nav.onHashChange)
 
   try {
     const urlParams = new URLSearchParams(location.search)
@@ -264,11 +206,11 @@ onMounted(async () => {
 
     await nextTick()
     store.setCanvas(canvasRef.value!)
-    canvas.initCanvas(draw)
+    canvasCtrl.initCanvas(draw)
 
+    /** Called when D3 simulation settles or ends — handles deferred AF filter and pending navigation */
     const finishLoading = () => {
-      // If a saved AF filter is pending, apply it now (after ALL-links settle)
-      // and let the simulation re-settle before finishing
+      // If a saved AF filter is pending, apply it and wait for re-settle
       if (pendingAfFilter !== null) {
         const af = pendingAfFilter
         pendingAfFilter = null
@@ -278,8 +220,9 @@ onMounted(async () => {
 
       loadingRef.value?.finish()
       drawEnabled = true
+
       if (needsInitialScale) {
-        const centerNode = canvas.setInitialScale(getCenterAsn())
+        const centerNode = canvasCtrl.setInitialScale(getCenterAsn())
         needsInitialScale = false
         // Auto-show nodeinfo of center node if enabled
         if (appSettings.autoShowNodeInfo && centerNode && !location.hash) {
@@ -289,10 +232,11 @@ onMounted(async () => {
           document.title = `${centerNode.desc} (AS${centerNode.asn}) - ${t('pageTitle')}`
         }
       }
+
       if (pendingNavigateNode) {
         const node = pendingNavigateNode
         pendingNavigateNode = null
-        navigateToNode(node)
+        nav.navigateToNode(node)
         openNodeSidebar(node)
       }
     }
@@ -305,7 +249,7 @@ onMounted(async () => {
         if (!drawEnabled) {
           const alpha = sim.alpha()
           simAlpha.value = alpha
-          if (alpha < 0.02) finishLoading()
+          if (alpha < RENDER.d3force.settleAlpha) finishLoading()
         }
       },
       () => {
@@ -323,7 +267,7 @@ onMounted(async () => {
     if (appSettings.afFilter && mapVersion.value >= MAP_VERSION) {
       let skip = false
       if (location.hash) {
-        const hashNode = resolveNode(location.hash.slice(1))
+        const hashNode = nav.resolveNode(location.hash.slice(1))
         if (hashNode) {
           skip = !store.state.deduplicatedLinks.some(
             l => (l.af & appSettings.afFilter) && (l.source.asn === hashNode.asn || l.target.asn === hashNode.asn),
@@ -332,13 +276,14 @@ onMounted(async () => {
       }
       if (!skip) pendingAfFilter = appSettings.afFilter
     }
+
     pointer.bind(store.getCanvas()!)
-    canvas.enableZoom()
+    canvasCtrl.enableZoom()
     draw()
 
     if (location.hash) {
       sim.on('end.hash', () => {
-        searchNodeByHash(location.hash.slice(1))
+        nav.searchNodeByHash(location.hash.slice(1))
         sim.on('end.hash', null)
       })
     }
@@ -351,8 +296,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   document.removeEventListener('gesturestart', onGestureStart)
   document.removeEventListener('keydown', onKeyDown)
-  window.removeEventListener('resize', canvas.onResize)
-  window.removeEventListener('hashchange', onHashChange)
+  window.removeEventListener('resize', canvasCtrl.onResize)
+  window.removeEventListener('hashchange', nav.onHashChange)
   pointer.unbind(store.getCanvas())
   store.getSimulation()?.stop()
 })

@@ -67,4 +67,13 @@ const i18n = createI18n<[MessageSchema], string>({
   },
 })
 
+/** Apply a locale setting — falls back to browser detection if empty string */
+export function applyLocale(localeCode: string) {
+  const resolved = localeCode || detectLocale()
+  const locale = i18n.global.locale as unknown as { value: string }
+  locale.value = resolved
+  document.documentElement.lang = resolved
+  document.title = i18n.global.t('pageTitle')
+}
+
 export default i18n

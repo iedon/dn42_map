@@ -1,6 +1,6 @@
 import { toRaw } from 'vue'
 import { select, zoom as d3zoom, zoomIdentity, forceCenter, type ZoomBehavior } from 'd3'
-import { RENDER } from '@/constants'
+import { RENDER, TIMING, DN42 } from '@/constants'
 import { useMapStore } from '@/stores/mapStore'
 import { renderFrame } from '@/graph/renderer'
 import { debounce } from '@/utils/timing'
@@ -42,7 +42,7 @@ export function useCanvas(store: ReturnType<typeof useMapStore>) {
     let centerNode: MapNode | null = null
 
     if (centerAsn) {
-      centerNode = nodeMap.get(centerAsn) || nodeMap.get(`424242${centerAsn}`) || null
+      centerNode = nodeMap.get(centerAsn) || nodeMap.get(`${DN42.baseAsnPrefix}${centerAsn}`) || null
       if (centerNode && visibleNodeAsns && !visibleNodeAsns.has(centerNode.asn)) {
         centerNode = null
       }
@@ -81,7 +81,7 @@ export function useCanvas(store: ReturnType<typeof useMapStore>) {
     const scale = store.state.transform.k
     const tx = innerWidth / 2 - node.x * scale
     const ty = innerHeight / 2 - node.y * scale
-    select(canvas).transition().duration(500)
+    select(canvas).transition().duration(TIMING.navigateAnimationMs)
       .call(zoomBehavior.transform, zoomIdentity.translate(tx, ty).scale(scale))
   }
 
@@ -98,9 +98,9 @@ export function useCanvas(store: ReturnType<typeof useMapStore>) {
     const sim = store.getSimulation()
     if (sim) {
       sim.force('center', forceCenter(innerWidth / 2, innerHeight / 2))
-      sim.alpha(0.5).restart()
+      sim.alpha(RENDER.d3force.resizeReheatAlpha).restart()
     }
-  }, 150)
+  }, TIMING.resizeDebounceMs)
 
   return { initCanvas, draw, setInitialScale, enableZoom, disableZoom, animateToNode, onResize }
 }

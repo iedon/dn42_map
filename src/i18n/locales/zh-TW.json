@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 首頁",
     "peerFinder": "DN42 對等點搜尋器",
-    "routeGraph": "highdef 路由圖",
     "tools": "Kioubit 工具",
     "apiServices": "API 服務",
     "ranking": "所有活躍節點和排名",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "全部",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
-    "mcastIpv4": "MCAST\nIPv4",
-    "mcastIpv6": "MCAST\nIPv6",
+    "allUcast": "全部\n單播",
+    "allMcast": "全部\n群播",
+    "ucastIpv4": "單播\nIPv4",
+    "ucastIpv6": "單播\nIPv6",
+    "mcastIpv4": "群播\nIPv4",
+    "mcastIpv6": "群播\nIPv6",
     "tooltipAll": "位址族過濾器：全部",
-    "tooltipIpv4": "位址族過濾器：IPv4 單播",
-    "tooltipIpv6": "位址族過濾器：IPv6 單播",
+    "tooltipAllUcast": "位址族過濾器：全部單播",
+    "tooltipAllMcast": "位址族過濾器：全部群播",
+    "tooltipUcastIpv4": "位址族過濾器：IPv4 單播",
+    "tooltipUcastIpv6": "位址族過濾器：IPv6 單播",
     "tooltipMcastIpv4": "位址族過濾器：IPv4 群播",
     "tooltipMcastIpv6": "位址族過濾器：IPv6 群播"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "介面語言",
+    "browserPreferred": "瀏覽器偏好",
+    "afFilter": "預設位址族",
+    "centerNode": "載入時的中心節點",
+    "centerByIndex": "最高 Map.dn42 Index",
+    "centerByCustom": "自訂 ASN",
+    "centerAsnPlaceholder": "輸入 ASN 號碼（例如 4242422189）",
+    "centerAsnRequired": "請輸入自訂中心節點的 ASN 號碼。",
+    "autoShowNodeInfo": "載入時自動顯示節點資訊",
+    "yes": "是",
+    "no": "否",
+    "save": "儲存",
+    "reset": "恢復預設設定"
   }
 }

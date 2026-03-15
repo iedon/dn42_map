@@ -104,12 +104,56 @@
   user-select: none;
   min-width: 32px;
 
-  .af-mcast {
+  .af-compact {
     display: inline-block;
   }
 
   &:hover {
     color: $accent-orange-light;
+  }
+}
+
+.af-dropdown-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.af-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+.af-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: $bg-toolbar;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 140px;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.af-dropdown-item {
+  display: block;
+  padding: 8px 12px;
+  color: $text-primary;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background $transition-fast;
+  text-decoration: none;
+
+  &:hover {
+    background: $accent-orange-hover;
+  }
+
+  &.active {
+    color: $accent-orange;
+    font-weight: bold;
   }
 }
 

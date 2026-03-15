@@ -31,30 +31,41 @@ export function useCanvas(store: ReturnType<typeof useMapStore>) {
     const canvas = store.getCanvas()!
     const ctx = store.getCtx()!
     const s = toRaw(store.state)
-    renderFrame(canvas, ctx, s.transform, s.deduplicatedLinks, s.nodes, s.hoveredNode, s.afFilter, s.visibleNodeAsns)
+    renderFrame(canvas, ctx, s.transform, s.deduplicatedLinks, s.visibleNodes, s.hoveredNode, s.afFilter, s.visibleNodeAsns)
   }
 
-  function setInitialScale() {
-    const { nodes, visibleNodeAsns } = store.state
+  /** Returns the node used as center (highest index or custom ASN). */
+  function setInitialScale(centerAsn?: string): MapNode | null {
+    const { nodes, visibleNodeAsns, nodeMap } = store.state
     const canvas = store.getCanvas()!
 
-    let cx = innerWidth / 2, cy = innerHeight / 2
-    if (nodes.length) {
-      let best: MapNode | null = null
+    let centerNode: MapNode | null = null
+
+    if (centerAsn) {
+      centerNode = nodeMap.get(centerAsn) || nodeMap.get(`424242${centerAsn}`) || null
+      if (centerNode && visibleNodeAsns && !visibleNodeAsns.has(centerNode.asn)) {
+        centerNode = null
+      }
+    }
+  
+    if (!centerNode && nodes.length) {
       for (const node of nodes) {
         if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
-        if (!best || node.centrality.index > best.centrality.index) best = node
+        if (!centerNode || node.centrality.index > centerNode.centrality.index) centerNode = node
       }
-      if (best) {
-        cx = best.x || 0
-        cy = best.y || 0
-      }
+    }
+
+    let cx = innerWidth / 2, cy = innerHeight / 2
+    if (centerNode) {
+      cx = centerNode.x || 0
+      cy = centerNode.y || 0
     }
 
     const scale = RENDER.canvas.zoom.initial
     const tx = innerWidth / 2 - cx * scale
     const ty = innerHeight / 2 - cy * scale
     select(canvas).call(zoomBehavior.transform, zoomIdentity.translate(tx, ty).scale(scale))
+    return centerNode
   }
 
   function enableZoom() {

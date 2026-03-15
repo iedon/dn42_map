@@ -2,6 +2,9 @@ import { toRaw, type Ref } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { throttle } from '@/utils/timing'
 import type { MapNode } from '@/types'
+import { RENDER } from '@/constants'
+
+const MIN_DIST_SQ = RENDER.node.maxSize * RENDER.node.maxSize
 
 interface PointerOptions {
   store: ReturnType<typeof useMapStore>
@@ -32,7 +35,7 @@ export function usePointer(opts: PointerOptions) {
   }
 
   function findClosestNode(x: number, y: number): MapNode | null {
-    let minDistSq = 225
+    let minDistSq = MIN_DIST_SQ
     let closest: MapNode | null = null
     const raw = toRaw(store.state)
     const { visibleNodeAsns, nodes } = raw

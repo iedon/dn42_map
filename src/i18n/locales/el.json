@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "Αρχική DN42",
     "peerFinder": "DN42 Peer Finder",
-    "routeGraph": "Γράφημα διαδρομών από highdef",
     "tools": "Εργαλεία από Kioubit",
     "apiServices": "Υπηρεσίες API",
     "ranking": "Όλοι οι ενεργοί κόμβοι και κατάταξη",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ΟΛΑ",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ΟΛΑ\nUCAST",
+    "allMcast": "ΟΛΑ\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Φίλτρο οικογένειας διευθύνσεων: Όλα",
-    "tooltipIpv4": "Φίλτρο οικογένειας διευθύνσεων: IPv4 Unicast",
-    "tooltipIpv6": "Φίλτρο οικογένειας διευθύνσεων: IPv6 Unicast",
+    "tooltipAllUcast": "Φίλτρο οικογένειας διευθύνσεων: Όλα Unicast",
+    "tooltipAllMcast": "Φίλτρο οικογένειας διευθύνσεων: Όλα Multicast",
+    "tooltipUcastIpv4": "Φίλτρο οικογένειας διευθύνσεων: IPv4 Unicast",
+    "tooltipUcastIpv6": "Φίλτρο οικογένειας διευθύνσεων: IPv6 Unicast",
     "tooltipMcastIpv4": "Φίλτρο οικογένειας διευθύνσεων: IPv4 Multicast",
     "tooltipMcastIpv6": "Φίλτρο οικογένειας διευθύνσεων: IPv6 Multicast"
+  },
+  "settings": {
+    "title": "Ρυθμίσεις",
+    "language": "Γλώσσα διεπαφής",
+    "browserPreferred": "Προτίμηση προγράμματος περιήγησης",
+    "afFilter": "Προεπιλεγμένη οικογένεια διευθύνσεων",
+    "centerNode": "Κεντρικός κόμβος κατά τη φόρτωση",
+    "centerByIndex": "Υψηλότερο Map.dn42 Index",
+    "centerByCustom": "Προσαρμοσμένο ASN",
+    "centerAsnPlaceholder": "Εισαγάγετε αριθμό ASN (π.χ. 4242422189)",
+    "centerAsnRequired": "Παρακαλώ εισαγάγετε έναν αριθμό ASN για τον προσαρμοσμένο κεντρικό κόμβο.",
+    "autoShowNodeInfo": "Αυτόματη εμφάνιση πληροφοριών κόμβου κατά τη φόρτωση",
+    "yes": "Ναι",
+    "no": "Όχι",
+    "save": "Αποθήκευση",
+    "reset": "Επαναφορά στις προεπιλογές"
   }
 }

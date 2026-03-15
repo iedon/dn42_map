@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "Trang chủ DN42",
     "peerFinder": "DN42 Peer Finder",
-    "routeGraph": "Biểu đồ tuyến bởi highdef",
     "tools": "Công cụ bởi Kioubit",
     "apiServices": "Dịch vụ API",
     "ranking": "Tất cả các nút hoạt động và xếp hạng",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ALL",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ALL\nUCAST",
+    "allMcast": "ALL\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Bộ lọc họ địa chỉ: Tất cả",
-    "tooltipIpv4": "Bộ lọc họ địa chỉ: IPv4 Unicast",
-    "tooltipIpv6": "Bộ lọc họ địa chỉ: IPv6 Unicast",
+    "tooltipAllUcast": "Bộ lọc họ địa chỉ: Tất cả Unicast",
+    "tooltipAllMcast": "Bộ lọc họ địa chỉ: Tất cả Multicast",
+    "tooltipUcastIpv4": "Bộ lọc họ địa chỉ: IPv4 Unicast",
+    "tooltipUcastIpv6": "Bộ lọc họ địa chỉ: IPv6 Unicast",
     "tooltipMcastIpv4": "Bộ lọc họ địa chỉ: IPv4 Multicast",
     "tooltipMcastIpv6": "Bộ lọc họ địa chỉ: IPv6 Multicast"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "language": "Ngôn ngữ giao diện",
+    "browserPreferred": "Theo trình duyệt",
+    "afFilter": "Họ địa chỉ mặc định",
+    "centerNode": "Nút trung tâm khi tải",
+    "centerByIndex": "Map.dn42 Index cao nhất",
+    "centerByCustom": "ASN tùy chỉnh",
+    "centerAsnPlaceholder": "Nhập số ASN (ví dụ: 4242422189)",
+    "centerAsnRequired": "Vui lòng nhập số ASN cho nút trung tâm tùy chỉnh.",
+    "autoShowNodeInfo": "Tự động hiển thị thông tin nút khi tải",
+    "yes": "Có",
+    "no": "Không",
+    "save": "Lưu",
+    "reset": "Khôi phục mặc định"
   }
 }

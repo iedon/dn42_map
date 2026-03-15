@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "Home DN42",
     "peerFinder": "DN42 Peer Finder",
-    "routeGraph": "Grafico delle rotte di highdef",
     "tools": "Strumenti di Kioubit",
     "apiServices": "Servizi API",
     "ranking": "Tutti i nodi attivi e classifica",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ALL",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ALL\nUCAST",
+    "allMcast": "ALL\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Filtro famiglia di indirizzi: Tutti",
-    "tooltipIpv4": "Filtro famiglia di indirizzi: IPv4 Unicast",
-    "tooltipIpv6": "Filtro famiglia di indirizzi: IPv6 Unicast",
+    "tooltipAllUcast": "Filtro famiglia di indirizzi: Tutti Unicast",
+    "tooltipAllMcast": "Filtro famiglia di indirizzi: Tutti Multicast",
+    "tooltipUcastIpv4": "Filtro famiglia di indirizzi: IPv4 Unicast",
+    "tooltipUcastIpv6": "Filtro famiglia di indirizzi: IPv6 Unicast",
     "tooltipMcastIpv4": "Filtro famiglia di indirizzi: IPv4 Multicast",
     "tooltipMcastIpv6": "Filtro famiglia di indirizzi: IPv6 Multicast"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "language": "Lingua dell'interfaccia",
+    "browserPreferred": "Preferenza del browser",
+    "afFilter": "Famiglia di indirizzi predefinita",
+    "centerNode": "Nodo centrale al caricamento",
+    "centerByIndex": "Map.dn42 Index più alto",
+    "centerByCustom": "ASN personalizzato",
+    "centerAsnPlaceholder": "Inserisci il numero ASN (es. 4242422189)",
+    "centerAsnRequired": "Inserisci un numero ASN per il nodo centrale personalizzato.",
+    "autoShowNodeInfo": "Mostra automaticamente le info del nodo al caricamento",
+    "yes": "Sì",
+    "no": "No",
+    "save": "Salva",
+    "reset": "Ripristina predefiniti"
   }
 }

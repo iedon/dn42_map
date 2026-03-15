@@ -40,7 +40,7 @@ export function renderFrame(
   ctx: CanvasRenderingContext2D,
   transform: ZoomTransform,
   deduplicatedLinks: MapLink[],
-  nodes: MapNode[],
+  visibleNodes: MapNode[],
   hoveredNode: MapNode | null,
   afFilter: number,
   visibleNodeAsns: Set<number> | null,
@@ -97,8 +97,20 @@ export function renderFrame(
 
   // -- Nodes + label collection --
   let eligibleLabels: MapNode[] = []
-  // Pre-computed hovered peers set for O(1) lookup
-  const hoveredPeers = hoveredNode?.peers
+
+  // When AF-filtered, derive peers from the already-filtered emphasizedLinks
+  // to avoid highlighting nodes not connected via the active address family.
+  let hoveredPeers: Set<number> | undefined
+  if (hoveredNode) {
+    if (afFilter && emphasizedLinks.length) {
+      hoveredPeers = new Set<number>()
+      for (const link of emphasizedLinks) {
+        hoveredPeers.add(link.source === hoveredNode ? link.target.asn : link.source.asn)
+      }
+    } else {
+      hoveredPeers = hoveredNode.peers
+    }
+  }
 
   if (zoom >= baseZoomThreshold) {
     const threshold = scaleSqrt(
@@ -106,15 +118,15 @@ export function renderFrame(
       importanceThresholdRange,
       zoom,
     )
-    for (const node of nodes) {
-      if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
+    for (const node of visibleNodes) {
       if (!inView(node.x, node.y, vp)) continue
+      if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
 
       if (
         node === hoveredNode ||
-        hoveredPeers?.has(node.asn) ||
         zoom >= highZoomThreshold ||
-        node.centrality.index >= threshold
+        node.centrality.index >= threshold ||
+        hoveredPeers?.has(node.asn)
       ) {
         eligibleLabels.push(node)
       }
@@ -132,9 +144,10 @@ export function renderFrame(
   // Draw nodes
   ctx.strokeStyle = BORDER_COLOR
   ctx.lineWidth = BORDER_WIDTH
-  for (const node of nodes) {
+  for (const node of visibleNodes) {
+    if (!inView(node.x, node.y, vp)) continue
     if (visibleNodeAsns && !visibleNodeAsns.has(node.asn)) continue
-    if (!inView(node.x, node.y, vp, 50)) continue
+    
 
     ctx.fillStyle =
       node === hoveredNode ? NODE_COLOR_CURRENT

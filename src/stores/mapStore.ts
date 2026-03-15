@@ -1,6 +1,6 @@
 import { shallowReactive, shallowRef, triggerRef } from 'vue'
 import { zoomIdentity, type ZoomTransform, type Simulation, type ForceLink } from 'd3'
-import type { MapNode, MapLink, AfFilter, RawGraph } from '@/types'
+import { type MapNode, type MapLink, type AfFilter, type RawGraph, AF_FILTERS } from '@/types'
 import { preprocessDataset } from './preprocess'
 import { scaleSqrt } from '@/utils/scale'
 import { RENDER } from '@/constants'
@@ -15,6 +15,7 @@ export interface MapState {
   hoveredNode: MapNode | null
   transform: ZoomTransform
   afFilter: AfFilter
+  visibleNodes: MapNode[]
   visibleNodeAsns: Set<number> | null
   filterRatio: number
 }
@@ -29,6 +30,7 @@ const state = shallowReactive<MapState>({
   hoveredNode: null,
   transform: zoomIdentity,
   afFilter: 0,
+  visibleNodes: [],
   visibleNodeAsns: null,
   filterRatio: 1,
 })
@@ -40,16 +42,40 @@ const simulation = shallowRef<Simulation<MapNode, MapLink> | null>(null)
 let canvas: HTMLCanvasElement | null = null
 let ctx: CanvasRenderingContext2D | null = null
 
-const AF_CYCLE: AfFilter[] = [0, 1, 2, 4, 8]
-
-// AF filter: 0=ALL, 1=IPv4, 2=IPv6, 4=MCAST IPv4, 8=MCAST IPv6
 // Links from backend carry a bitmask (e.g. af=5 means v4 unicast + v4 multicast).
-// The bitwise & check in rebuildVisibleNodeAsns matches any link whose af includes the filter bit.
-export const AF_LABEL_KEYS: Record<number, string> = { 0: 'af.all', 1: 'af.ipv4', 2: 'af.ipv6', 4: 'af.mcastIpv4', 8: 'af.mcastIpv6' }
-export const AF_TOOLTIP_KEYS: Record<number, string> = { 0: 'af.tooltipAll', 1: 'af.tooltipIpv4', 2: 'af.tooltipIpv6', 4: 'af.tooltipMcastIpv4', 8: 'af.tooltipMcastIpv6' }
+// Compound values (3=all unicast, 12=all multicast) match via bitwise &.
+export const AF_OPTIONS: AfFilter[] = [
+  AF_FILTERS.ALL,
+  AF_FILTERS.AF_ALL_UCAST,
+  AF_FILTERS.AF_ALL_MCAST,
+  AF_FILTERS.AF_UCAST_IPV4,
+  AF_FILTERS.AF_UCAST_IPV6,
+  AF_FILTERS.AF_MCAST_IPV4,
+  AF_FILTERS.AF_MCAST_IPV6,
+]
+
+export const AF_LABEL_KEYS: Record<number, string> = {
+  [AF_FILTERS.ALL]: 'af.all',
+  [AF_FILTERS.AF_ALL_UCAST]: 'af.allUcast',
+  [AF_FILTERS.AF_ALL_MCAST]: 'af.allMcast',
+  [AF_FILTERS.AF_UCAST_IPV4]: 'af.ucastIpv4',
+  [AF_FILTERS.AF_UCAST_IPV6]: 'af.ucastIpv6',
+  [AF_FILTERS.AF_MCAST_IPV4]: 'af.mcastIpv4',
+  [AF_FILTERS.AF_MCAST_IPV6]: 'af.mcastIpv6',
+}
+export const AF_TOOLTIP_KEYS: Record<number, string> = {
+  [AF_FILTERS.ALL]: 'af.tooltipAll',
+  [AF_FILTERS.AF_ALL_UCAST]: 'af.tooltipAllUcast',
+  [AF_FILTERS.AF_ALL_MCAST]: 'af.tooltipAllMcast',
+  [AF_FILTERS.AF_UCAST_IPV4]: 'af.tooltipUcastIpv4',
+  [AF_FILTERS.AF_UCAST_IPV6]: 'af.tooltipUcastIpv6',
+  [AF_FILTERS.AF_MCAST_IPV4]: 'af.tooltipMcastIpv4',
+  [AF_FILTERS.AF_MCAST_IPV6]: 'af.tooltipMcastIpv6',
+}
 
 function rebuildVisibleNodeAsns() {
   if (!state.afFilter) {
+    state.visibleNodes = state.nodes
     state.visibleNodeAsns = null
     return
   }
@@ -60,6 +86,7 @@ function rebuildVisibleNodeAsns() {
       visible.add(link.target.asn)
     }
   }
+  state.visibleNodes = state.nodes.filter(n => visible.has(n.asn))
   state.visibleNodeAsns = visible
 }
 
@@ -68,6 +95,7 @@ export function useMapStore() {
     state.rawData = data
     const result = preprocessDataset(data)
     state.nodes = result.nodes
+    state.visibleNodes = result.nodes
     state.links = result.links
     state.deduplicatedLinks = result.deduplicatedLinks
     state.nodeMap = result.nodeMap
@@ -97,9 +125,9 @@ export function useMapStore() {
     state.hoveredNode = node
   }
 
-  function cycleAfFilter() {
-    const idx = AF_CYCLE.indexOf(state.afFilter)
-    state.afFilter = AF_CYCLE[(idx + 1) % AF_CYCLE.length]
+  function setAfFilter(af: AfFilter) {
+    if (state.afFilter === af) return
+    state.afFilter = af
     rebuildVisibleNodeAsns()
     applyFilterToSimulation()
   }
@@ -147,6 +175,6 @@ export function useMapStore() {
     getSimulation,
     setTransform,
     setHoveredNode,
-    cycleAfFilter,
+    setAfFilter,
   }
 }

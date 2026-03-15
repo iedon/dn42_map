@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 Home",
     "peerFinder": "DN42 Peer Finder",
-    "routeGraph": "Route Graph by highdef",
     "tools": "Tools by Kioubit",
     "apiServices": "API Services",
     "ranking": "All active nodes and ranking",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ALL",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ALL\nUCAST",
+    "allMcast": "ALL\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Address Family Filter: All",
-    "tooltipIpv4": "Address Family Filter: IPv4 Unicast",
-    "tooltipIpv6": "Address Family Filter: IPv6 Unicast",
+    "tooltipAllUcast": "Address Family Filter: All Unicast",
+    "tooltipAllMcast": "Address Family Filter: All Multicast",
+    "tooltipUcastIpv4": "Address Family Filter: IPv4 Unicast",
+    "tooltipUcastIpv6": "Address Family Filter: IPv6 Unicast",
     "tooltipMcastIpv4": "Address Family Filter: IPv4 Multicast",
     "tooltipMcastIpv6": "Address Family Filter: IPv6 Multicast"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "UI Language",
+    "browserPreferred": "Browser Preferred",
+    "afFilter": "Default Address Family",
+    "centerNode": "Center Node on Load",
+    "centerByIndex": "Highest Map.dn42 Index",
+    "centerByCustom": "Custom ASN",
+    "centerAsnPlaceholder": "Enter ASN number (e.g. 4242422189)",
+    "centerAsnRequired": "Please enter an ASN number for custom center node.",
+    "autoShowNodeInfo": "Auto Show Node Info on Load",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "reset": "Reset to Default"
   }
 }

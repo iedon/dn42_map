@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "Главная DN42",
     "peerFinder": "DN42 Peer Finder",
-    "routeGraph": "Граф маршрутов от highdef",
     "tools": "Инструменты от Kioubit",
     "apiServices": "API-сервисы",
     "ranking": "Все активные узлы и рейтинг",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ВСЕ",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ВСЕ\nUCAST",
+    "allMcast": "ВСЕ\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Фильтр семейства адресов: Все",
-    "tooltipIpv4": "Фильтр семейства адресов: IPv4 одноадресная",
-    "tooltipIpv6": "Фильтр семейства адресов: IPv6 одноадресная",
+    "tooltipAllUcast": "Фильтр семейства адресов: Все одноадресные",
+    "tooltipAllMcast": "Фильтр семейства адресов: Все многоадресные",
+    "tooltipUcastIpv4": "Фильтр семейства адресов: IPv4 одноадресная",
+    "tooltipUcastIpv6": "Фильтр семейства адресов: IPv6 одноадресная",
     "tooltipMcastIpv4": "Фильтр семейства адресов: IPv4 многоадресная",
     "tooltipMcastIpv6": "Фильтр семейства адресов: IPv6 многоадресная"
+  },
+  "settings": {
+    "title": "Настройки",
+    "language": "Язык интерфейса",
+    "browserPreferred": "Настройка браузера",
+    "afFilter": "Семейство адресов по умолчанию",
+    "centerNode": "Центральный узел при загрузке",
+    "centerByIndex": "Наивысший Map.dn42 Index",
+    "centerByCustom": "Пользовательский ASN",
+    "centerAsnPlaceholder": "Введите номер ASN (например, 4242422189)",
+    "centerAsnRequired": "Пожалуйста, введите номер ASN для пользовательского центрального узла.",
+    "autoShowNodeInfo": "Автоматически показывать информацию об узле при загрузке",
+    "yes": "Да",
+    "no": "Нет",
+    "save": "Сохранить",
+    "reset": "Сбросить по умолчанию"
   }
 }

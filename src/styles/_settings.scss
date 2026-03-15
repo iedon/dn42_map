@@ -1,0 +1,206 @@
+@use 'variables' as *;
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all $transition-medium;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+
+    .settings-popup {
+      transform: scale(1);
+    }
+  }
+}
+
+.settings-popup {
+  background: #1e1e1e;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform $transition-medium;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #2d2d2d, #1a1a1a);
+  border-bottom: 1px solid $border-dark;
+}
+
+.settings-title {
+  color: $text-primary;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.settings-close {
+  background: none;
+  border: none;
+  color: $text-muted;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all $transition-fast;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: $accent-orange-hover;
+    color: $accent-orange;
+  }
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.settings-field {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.settings-label {
+  display: block;
+  color: $text-primary;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.settings-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid $border-dark;
+  border-radius: 6px;
+  color: $text-primary;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-orange;
+  }
+
+  option {
+    background: #2a2a2a;
+    color: $text-primary;
+  }
+}
+
+.settings-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid $border-dark;
+  border-radius: 6px;
+  color: $text-primary;
+  font-size: 14px;
+  font-family: $mono-font;
+  margin-top: 8px;
+  box-sizing: border-box;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-orange;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.settings-radios {
+  display: flex;
+  gap: 16px;
+}
+
+.settings-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: $text-secondary;
+  font-size: 14px;
+
+  input[type="radio"] {
+    accent-color: $accent-orange;
+    cursor: pointer;
+  }
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #252525;
+  border-top: 1px solid $border-dark;
+}
+
+.settings-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.settings-btn-reset {
+  background: $border-dark;
+  color: $text-primary;
+
+  &:hover {
+    background: $border-color;
+  }
+}
+
+.settings-btn-save {
+  background: $accent-green;
+  color: $text-white;
+
+  &:hover {
+    background: $accent-green-hover;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .settings-popup {
+    width: 95%;
+    max-height: 95vh;
+  }
+}

@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 ホーム",
     "peerFinder": "DN42 ピアファインダー",
-    "routeGraph": "highdef ルートグラフ",
     "tools": "Kioubit ツール",
     "apiServices": "APIサービス",
     "ranking": "全アクティブノードとランキング",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ALL",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "全\nUCAST",
+    "allMcast": "全\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "アドレスファミリーフィルター: 全て",
-    "tooltipIpv4": "アドレスファミリーフィルター: IPv4ユニキャスト",
-    "tooltipIpv6": "アドレスファミリーフィルター: IPv6ユニキャスト",
+    "tooltipAllUcast": "アドレスファミリーフィルター: 全ユニキャスト",
+    "tooltipAllMcast": "アドレスファミリーフィルター: 全マルチキャスト",
+    "tooltipUcastIpv4": "アドレスファミリーフィルター: IPv4ユニキャスト",
+    "tooltipUcastIpv6": "アドレスファミリーフィルター: IPv6ユニキャスト",
     "tooltipMcastIpv4": "アドレスファミリーフィルター: IPv4マルチキャスト",
     "tooltipMcastIpv6": "アドレスファミリーフィルター: IPv6マルチキャスト"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "UI言語",
+    "browserPreferred": "ブラウザの設定に従う",
+    "afFilter": "デフォルトアドレスファミリー",
+    "centerNode": "読み込み時の中心ノード",
+    "centerByIndex": "最高 Map.dn42 Index",
+    "centerByCustom": "カスタムASN",
+    "centerAsnPlaceholder": "ASN番号を入力（例：4242422189）",
+    "centerAsnRequired": "カスタム中心ノードのASN番号を入力してください。",
+    "autoShowNodeInfo": "読み込み時にノード情報を自動表示",
+    "yes": "はい",
+    "no": "いいえ",
+    "save": "保存",
+    "reset": "デフォルトに戻す"
   }
 }

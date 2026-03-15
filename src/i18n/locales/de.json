@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 Startseite",
     "peerFinder": "DN42 Peer-Finder",
-    "routeGraph": "Routengraph von highdef",
     "tools": "Werkzeuge von Kioubit",
     "apiServices": "API-Dienste",
     "ranking": "Alle aktiven Knoten und Rangliste",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "ALLE",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "ALLE\nUCAST",
+    "allMcast": "ALLE\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "Adressfamilienfilter: Alle",
-    "tooltipIpv4": "Adressfamilienfilter: IPv4 Unicast",
-    "tooltipIpv6": "Adressfamilienfilter: IPv6 Unicast",
+    "tooltipAllUcast": "Adressfamilienfilter: Alle Unicast",
+    "tooltipAllMcast": "Adressfamilienfilter: Alle Multicast",
+    "tooltipUcastIpv4": "Adressfamilienfilter: IPv4 Unicast",
+    "tooltipUcastIpv6": "Adressfamilienfilter: IPv6 Unicast",
     "tooltipMcastIpv4": "Adressfamilienfilter: IPv4 Multicast",
     "tooltipMcastIpv6": "Adressfamilienfilter: IPv6 Multicast"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "UI-Sprache",
+    "browserPreferred": "Browsereinstellung",
+    "afFilter": "Standard-Adressfamilie",
+    "centerNode": "Zentraler Knoten beim Laden",
+    "centerByIndex": "Höchster Map.dn42 Index",
+    "centerByCustom": "Benutzerdefiniertes ASN",
+    "centerAsnPlaceholder": "ASN-Nummer eingeben (z.B. 4242422189)",
+    "centerAsnRequired": "Bitte geben Sie eine ASN-Nummer für den benutzerdefinierten Zentralknoten ein.",
+    "autoShowNodeInfo": "Knoteninfo beim Laden automatisch anzeigen",
+    "yes": "Ja",
+    "no": "Nein",
+    "save": "Speichern",
+    "reset": "Auf Standard zurücksetzen"
   }
 }

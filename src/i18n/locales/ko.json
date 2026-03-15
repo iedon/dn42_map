@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 홈",
     "peerFinder": "DN42 피어 파인더",
-    "routeGraph": "highdef 라우트 그래프",
     "tools": "Kioubit 도구",
     "apiServices": "API 서비스",
     "ranking": "모든 활성 노드 및 순위",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "전체",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "전체\nUCAST",
+    "allMcast": "전체\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "주소 패밀리 필터: 전체",
-    "tooltipIpv4": "주소 패밀리 필터: IPv4 유니캐스트",
-    "tooltipIpv6": "주소 패밀리 필터: IPv6 유니캐스트",
+    "tooltipAllUcast": "주소 패밀리 필터: 전체 유니캐스트",
+    "tooltipAllMcast": "주소 패밀리 필터: 전체 멀티캐스트",
+    "tooltipUcastIpv4": "주소 패밀리 필터: IPv4 유니캐스트",
+    "tooltipUcastIpv6": "주소 패밀리 필터: IPv6 유니캐스트",
     "tooltipMcastIpv4": "주소 패밀리 필터: IPv4 멀티캐스트",
     "tooltipMcastIpv6": "주소 패밀리 필터: IPv6 멀티캐스트"
+  },
+  "settings": {
+    "title": "설정",
+    "language": "UI 언어",
+    "browserPreferred": "브라우저 기본 설정",
+    "afFilter": "기본 주소 패밀리",
+    "centerNode": "로드 시 중심 노드",
+    "centerByIndex": "최고 Map.dn42 Index",
+    "centerByCustom": "사용자 지정 ASN",
+    "centerAsnPlaceholder": "ASN 번호를 입력하세요 (예: 4242422189)",
+    "centerAsnRequired": "사용자 지정 중심 노드의 ASN 번호를 입력해 주세요.",
+    "autoShowNodeInfo": "로드 시 노드 정보 자동 표시",
+    "yes": "예",
+    "no": "아니오",
+    "save": "저장",
+    "reset": "기본값으로 초기화"
   }
 }

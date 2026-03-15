@@ -79,7 +79,24 @@ export interface Viewport {
 
 export type LoadingState = 'fetching' | 'parsing' | 'rendering' | 'done'
 
-export type AfFilter = number
+// 0=ALL, 3=All Unicast, 12=All Multicast, 1=Unicast IPv4, 2=Unicast IPv6, 4=Multicast IPv4, 8=Multicast IPv6
+type AF_ALL = 0
+type AF_ALL_UCAST = 3
+type AF_ALL_MCAST = 12
+type AF_UCAST_IPV4 = 1
+type AF_UCAST_IPV6 = 2
+type AF_MCAST_IPV4 = 4
+type AF_MCAST_IPV6 = 8
+export const AF_FILTERS = {
+  ALL: 0,
+  AF_ALL_UCAST: 3,
+  AF_ALL_MCAST: 12,
+  AF_UCAST_IPV4: 1,
+  AF_UCAST_IPV6: 2,
+  AF_MCAST_IPV4: 4,
+  AF_MCAST_IPV6: 8,
+} as const
+export type AfFilter = AF_ALL | AF_UCAST_IPV4 | AF_UCAST_IPV6 | AF_ALL_UCAST | AF_MCAST_IPV4 | AF_MCAST_IPV6 | AF_ALL_MCAST
 
 export interface MyIpData {
   ip?: string
@@ -92,4 +109,12 @@ export interface TimeMachineVersions {
   [year: string]: {
     [month: string]: string[]
   }
+}
+
+export interface AppSettings {
+  locale: string            // '' = browser preferred, or a locale code
+  afFilter: AfFilter        // 0=ALL, 1=IPv4, 2=IPv6, 4=MCAST-IPv4, 8=MCAST-IPv6
+  centerMode: 'index' | 'custom' // 'index' = highest Map.dn42 index, 'custom' = specific ASN
+  centerAsn: string         // ASN number for custom center (digits only)
+  autoShowNodeInfo: boolean // auto-open sidebar for center node after load
 }

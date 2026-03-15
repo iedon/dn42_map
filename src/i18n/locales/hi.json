@@ -9,7 +9,6 @@
   "header": {
     "dn42Home": "DN42 होम",
     "peerFinder": "DN42 पीयर फाइंडर",
-    "routeGraph": "highdef द्वारा रूट ग्राफ",
     "tools": "Kioubit द्वारा उपकरण",
     "apiServices": "API सेवाएँ",
     "ranking": "सभी सक्रिय नोड और रैंकिंग",
@@ -70,14 +69,34 @@
   },
   "af": {
     "all": "सभी",
-    "ipv4": "IPv4",
-    "ipv6": "IPv6",
+    "allUcast": "सभी\nUCAST",
+    "allMcast": "सभी\nMCAST",
+    "ucastIpv4": "UCAST\nIPv4",
+    "ucastIpv6": "UCAST\nIPv6",
     "mcastIpv4": "MCAST\nIPv4",
     "mcastIpv6": "MCAST\nIPv6",
     "tooltipAll": "पता परिवार फ़िल्टर: सभी",
-    "tooltipIpv4": "पता परिवार फ़िल्टर: IPv4 यूनिकास्ट",
-    "tooltipIpv6": "पता परिवार फ़िल्टर: IPv6 यूनिकास्ट",
+    "tooltipAllUcast": "पता परिवार फ़िल्टर: सभी यूनिकास्ट",
+    "tooltipAllMcast": "पता परिवार फ़िल्टर: सभी मल्टीकास्ट",
+    "tooltipUcastIpv4": "पता परिवार फ़िल्टर: IPv4 यूनिकास्ट",
+    "tooltipUcastIpv6": "पता परिवार फ़िल्टर: IPv6 यूनिकास्ट",
     "tooltipMcastIpv4": "पता परिवार फ़िल्टर: IPv4 मल्टीकास्ट",
     "tooltipMcastIpv6": "पता परिवार फ़िल्टर: IPv6 मल्टीकास्ट"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "language": "UI भाषा",
+    "browserPreferred": "ब्राउज़र वरीयता",
+    "afFilter": "डिफ़ॉल्ट पता परिवार",
+    "centerNode": "लोड पर केंद्र नोड",
+    "centerByIndex": "उच्चतम Map.dn42 Index",
+    "centerByCustom": "कस्टम ASN",
+    "centerAsnPlaceholder": "ASN नंबर दर्ज करें (जैसे 4242422189)",
+    "centerAsnRequired": "कृपया कस्टम केंद्र नोड के लिए ASN नंबर दर्ज करें।",
+    "autoShowNodeInfo": "लोड पर नोड जानकारी स्वचालित रूप से दिखाएं",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "save": "सहेजें",
+    "reset": "डिफ़ॉल्ट पर रीसेट करें"
   }
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"compress/bzip2"
 	"context"
@@ -158,25 +159,20 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([]MRTDownload, error
 				return
 			}
 
-			// Decompress using bzip2 with streaming
-			bzReader := bzip2.NewReader(resp.Body)
+			// is bzip2
+			br := bufio.NewReader(resp.Body)
+			header, err := br.Peek(3)
 
-			// Use a buffer to read data in chunks
+			var reader io.Reader = br
+			if err == nil && string(header) == "BZh" {
+				reader = bzip2.NewReader(br)
+			}
+
+			// read data
 			var buffer bytes.Buffer
-			chunk := make([]byte, 32*1024) // 32KB chunks
-
-			for {
-				n, err := bzReader.Read(chunk)
-				if n > 0 {
-					buffer.Write(chunk[:n])
-				}
-				if err == io.EOF {
-					break
-				}
-				if err != nil {
-					errCh <- fmt.Errorf("failed to decompress %s: %v", entry.URL, err)
-					return
-				}
+			if _, err := io.Copy(&buffer, reader); err != nil {
+				errCh <- fmt.Errorf("failed to read data from %s: %v", entry.URL, err)
+				return
 			}
 
 			// Send the decompressed data with source tag

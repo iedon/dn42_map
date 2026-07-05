@@ -1,10 +1,9 @@
 package graph
 
 import (
-	"fmt"
-	"time"
-
+	"cmp"
 	"slices"
+	"time"
 
 	"github.com/iedon/dn42_map_go/centrality"
 	"github.com/iedon/dn42_map_go/mrt"
@@ -18,17 +17,17 @@ const MapVendor = "IEDON.NET"
 // Version 2: added address family (af) bitmask on links
 const MapVersion = 2
 
-// BuildGraph builds a Graph protobuf message from MRT processing results
-func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph {
+// BuildGraph builds a Graph protobuf message from aggregated MRT data.
+func BuildGraph(agg *mrt.Aggregate, asnDescriptions map[uint32]string) *pb.Graph {
 	graph := &pb.Graph{
-		Metadata: buildMetadata(result),
+		Metadata: buildMetadata(agg),
 	}
 
-	nodeList, asnToIndex := collectSortedNodes(result)
+	nodeList, asnToIndex := collectSortedNodes(agg)
 	centralityGraph := centrality.NewGraph()
 
-	graph.Nodes = buildNodes(nodeList, result, asnDescriptions, centralityGraph)
-	graph.Links = buildLinks(result, asnToIndex, centralityGraph)
+	graph.Nodes = buildNodes(nodeList, agg, asnDescriptions, centralityGraph)
+	graph.Links = buildLinks(agg, asnToIndex, centralityGraph)
 
 	centralityGraph.CalculateCentrality()
 	applyCentrality(graph.Nodes, centralityGraph)
@@ -36,30 +35,20 @@ func BuildGraph(result *mrt.Result, asnDescriptions map[uint32]string) *pb.Graph
 	return graph
 }
 
-func buildMetadata(result *mrt.Result) *pb.Metadata {
-	meta := &pb.Metadata{
+func buildMetadata(agg *mrt.Aggregate) *pb.Metadata {
+	return &pb.Metadata{
 		Vendor:             MapVendor,
 		GeneratedTimestamp: uint64(time.Now().Unix()),
+		DataTimestamp:      agg.DataTimestamp,
 		Version:            MapVersion,
 	}
-	if result.Metadata != nil {
-		meta.DataTimestamp = result.Metadata.Timestamp
-	}
-	return meta
 }
 
-// collectSortedNodes extracts all unique ASNs from AS paths, returns a sorted
-// list and an ASN-to-index mapping for link referencing.
-func collectSortedNodes(result *mrt.Result) ([]uint32, map[uint32]uint32) {
-	seen := make(map[uint32]struct{})
-	for _, asp := range result.ASPaths {
-		for _, asn := range asp.Path {
-			seen[asn] = struct{}{}
-		}
-	}
-
-	nodeList := make([]uint32, 0, len(seen))
-	for asn := range seen {
+// collectSortedNodes returns the ASNs sorted ascending and an ASN-to-index
+// mapping used to reference nodes from links.
+func collectSortedNodes(agg *mrt.Aggregate) ([]uint32, map[uint32]uint32) {
+	nodeList := make([]uint32, 0, len(agg.Nodes))
+	for asn := range agg.Nodes {
 		nodeList = append(nodeList, asn)
 	}
 	slices.Sort(nodeList)
@@ -72,14 +61,14 @@ func collectSortedNodes(result *mrt.Result) ([]uint32, map[uint32]uint32) {
 	return nodeList, asnToIndex
 }
 
-func buildNodes(nodeList []uint32, result *mrt.Result, descriptions map[uint32]string, cg *centrality.Graph) []*pb.Node {
+func buildNodes(nodeList []uint32, agg *mrt.Aggregate, descriptions map[uint32]string, cg *centrality.Graph) []*pb.Node {
 	nodes := make([]*pb.Node, 0, len(nodeList))
 	for _, asn := range nodeList {
 		node := &pb.Node{
 			Asn:             asn,
 			Desc:            descriptions[asn],
-			Routes:          convertRoutes(result.Advertises[asn]),
-			RoutesMulticast: convertRoutes(result.AdvertisesMulticast[asn]),
+			Routes:          convertRoutes(agg.Advertises[asn]),
+			RoutesMulticast: convertRoutes(agg.AdvertisesMulticast[asn]),
 		}
 		nodes = append(nodes, node)
 		cg.AddNode(asn)
@@ -87,84 +76,89 @@ func buildNodes(nodeList []uint32, result *mrt.Result, descriptions map[uint32]s
 	return nodes
 }
 
-// convertRoutes converts MRT route entries into protobuf Route messages.
-func convertRoutes(routes []mrt.Route) []*pb.Route {
+// convertRoutes converts a set of MRT routes into protobuf Route messages,
+// sorted deterministically so identical input yields identical output.
+func convertRoutes(routes map[mrt.Route]struct{}) []*pb.Route {
 	if len(routes) == 0 {
 		return nil
 	}
 
-	pbRoutes := make([]*pb.Route, 0, len(routes))
-	for _, route := range routes {
-		if pbRoute := convertRoute(route); pbRoute != nil {
-			pbRoutes = append(pbRoutes, pbRoute)
-		}
+	sorted := make([]mrt.Route, 0, len(routes))
+	for route := range routes {
+		sorted = append(sorted, route)
+	}
+	slices.SortFunc(sorted, compareRoute)
+
+	pbRoutes := make([]*pb.Route, len(sorted))
+	for i, route := range sorted {
+		pbRoutes[i] = convertRoute(route)
 	}
 	return pbRoutes
 }
 
 func convertRoute(route mrt.Route) *pb.Route {
 	pbRoute := &pb.Route{Length: route.Length}
-
-	switch route.IPType {
-	case "ipv4":
-		if ipv4, ok := route.IPValue.(uint32); ok {
-			pbRoute.Ip = &pb.Route_Ipv4{Ipv4: ipv4}
+	if route.IsV6 {
+		pbRoute.Ip = &pb.Route_Ipv6{
+			Ipv6: &pb.IPv6{
+				HighH32: route.V6[0],
+				HighL32: route.V6[1],
+				LowH32:  route.V6[2],
+				LowL32:  route.V6[3],
+			},
 		}
-	case "ipv6":
-		if ipv6, ok := route.IPValue.([4]uint32); ok {
-			pbRoute.Ip = &pb.Route_Ipv6{
-				Ipv6: &pb.IPv6{
-					HighH32: ipv6[0],
-					HighL32: ipv6[1],
-					LowH32:  ipv6[2],
-					LowL32:  ipv6[3],
-				},
-			}
-		}
-	default:
-		return nil
+	} else {
+		pbRoute.Ip = &pb.Route_Ipv4{Ipv4: route.V4}
 	}
-
 	return pbRoute
 }
 
-func buildLinks(result *mrt.Result, asnToIndex map[uint32]uint32, cg *centrality.Graph) []*pb.Link {
-	links := make(map[string]*pb.Link)
-	var pbLinks []*pb.Link
-
-	for _, asp := range result.ASPaths {
-		for i := range len(asp.Path) - 1 {
-			src, dst := asp.Path[i], asp.Path[i+1]
-
-			// Skip self-loops (AS prepending)
-			if src == dst {
-				continue
-			}
-
-			srcIdx, srcOk := asnToIndex[src]
-			dstIdx, dstOk := asnToIndex[dst]
-			if !srcOk || !dstOk {
-				continue
-			}
-
-			key := getLinkKey(srcIdx, dstIdx)
-			if existing, exists := links[key]; exists {
-				// If the link already exists, combine AF bitmasks (e.g. if one path is IPv4 and another is IPv6, unicast and/or multicast)
-				existing.Af |= asp.AF
-			} else {
-				link := &pb.Link{
-					Source: srcIdx,
-					Target: dstIdx,
-					Af:     asp.AF,
-				}
-				links[key] = link
-				pbLinks = append(pbLinks, link)
-				cg.AddLink(src, dst)
-			}
+func compareRoute(a, b mrt.Route) int {
+	if a.IsV6 != b.IsV6 {
+		if a.IsV6 {
+			return 1
 		}
+		return -1
 	}
+	if a.IsV6 {
+		if c := slices.Compare(a.V6[:], b.V6[:]); c != 0 {
+			return c
+		}
+	} else if c := cmp.Compare(a.V4, b.V4); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.Length, b.Length)
+}
 
-	return pbLinks
+// buildLinks emits protobuf links from the deduplicated edge set, sorted
+// deterministically, and feeds the adjacency into the centrality graph.
+func buildLinks(agg *mrt.Aggregate, asnToIndex map[uint32]uint32, cg *centrality.Graph) []*pb.Link {
+	keys := make([]mrt.LinkKey, 0, len(agg.Links))
+	for key := range agg.Links {
+		keys = append(keys, key)
+	}
+	slices.SortFunc(keys, func(a, b mrt.LinkKey) int {
+		if c := cmp.Compare(a.Src, b.Src); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.Dst, b.Dst)
+	})
+
+	links := make([]*pb.Link, 0, len(keys))
+	for _, key := range keys {
+		srcIdx, srcOk := asnToIndex[key.Src]
+		dstIdx, dstOk := asnToIndex[key.Dst]
+		if !srcOk || !dstOk {
+			continue
+		}
+		links = append(links, &pb.Link{
+			Source: srcIdx,
+			Target: dstIdx,
+			Af:     agg.Links[key],
+		})
+		cg.AddLink(key.Src, key.Dst)
+	}
+	return links
 }
 
 func applyCentrality(nodes []*pb.Node, cg *centrality.Graph) {
@@ -181,9 +175,4 @@ func applyCentrality(nodes []*pb.Node, cg *centrality.Graph) {
 			Ranking:     cn.Ranking,
 		}
 	}
-}
-
-// linkKey generates a unique key for a bidirectional link.
-func getLinkKey(src, dst uint32) string {
-	return fmt.Sprintf("%d-%d", src, dst)
 }

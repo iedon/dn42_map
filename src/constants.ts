@@ -99,8 +99,8 @@ export const DN42 = {
   myIpApi: `${location.protocol}//map.dn42/myip/api`,
   rawJsonApiUrl: 'https://iedon.net/post/4',
   queryRoutesUrl: isDn42
-    ? 'https://lg.iedon.dn42/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin+au-syd/'
-    : 'https://lg.iedon.net/route_all/us-lax+us-sjc+jp-tyo+jp-kot+jp-118+de-fra+hk-hkg+cn-czx+cn-ntg+sg-sin+au-syd/',
+    ? 'https://iedon.dn42/lg/'
+    : 'https://iedon.net/lg/',
   routeGraphInitiateAsn: 4242422189,
   toolboxUrl: 'https://dn42.g-load.eu/toolbox/',
   timeMachineBinUrlPrefix: 'https://mrt.iedon.net/map',

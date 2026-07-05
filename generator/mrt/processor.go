@@ -1,66 +1,132 @@
 package mrt
 
 import (
-	"bytes"
+	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
-	"net"
-	"sync"
 )
 
-// ASPath represents an AS path with address family info
-type ASPath struct {
-	Path []uint32
-	AF   uint32 // Bitmask: 1=IPv4, 2=IPv6
-}
+// Address-family bitmask values carried on links.
+const (
+	AFIPv4Unicast   uint32 = 1 // 0001
+	AFIPv6Unicast   uint32 = 2 // 0010
+	AFIPv4Multicast uint32 = 4 // 0100
+	AFIPv6Multicast uint32 = 8 // 1000
+)
 
-// Result stores the results of MRT processing
-type Result struct {
-	ASPaths             []ASPath           // AS path list
-	Advertises          map[uint32][]Route // ASN to unicast route mapping
-	AdvertisesMulticast map[uint32][]Route // ASN to multicast route mapping
-	Metadata            *Metadata
-}
+// MRT message and TABLE_DUMP_V2 subtype constants (RFC 6396 / RFC 8050).
+const (
+	mrtTypeTableDumpV2 uint16 = 13
 
-// Route represents a route entry
+	subPeerIndexTable      uint16 = 1
+	subRIBIPv4Unicast      uint16 = 2
+	subRIBIPv4Multicast    uint16 = 3
+	subRIBIPv6Unicast      uint16 = 4
+	subRIBIPv6Multicast    uint16 = 5
+	subRIBIPv4UnicastAdd   uint16 = 8
+	subRIBIPv4MulticastAdd uint16 = 9
+	subRIBIPv6UnicastAdd   uint16 = 10
+	subRIBIPv6MulticastAdd uint16 = 11
+
+	attrTypeASPath uint8 = 2
+)
+
+// Route is an advertised prefix. It is a comparable value so it can be used
+// directly as a deduplication map key without boxing.
 type Route struct {
-	Length  uint32
-	IPType  string // "ipv4" or "ipv6"
-	IPValue any
+	Length uint32
+	IsV6   bool
+	V4     uint32    // valid when !IsV6
+	V6     [4]uint32 // valid when IsV6
 }
 
-// Metadata stores metadata for MRT data
-type Metadata struct {
-	Timestamp uint64
+// LinkKey identifies a directed edge between two ASNs.
+type LinkKey struct {
+	Src uint32
+	Dst uint32
 }
 
-// Processor processes MRT data
-type Processor struct {
-	sync.Mutex
+// Aggregate is the graph data accumulated on the fly while streaming MRT dumps.
+// It stores only the deduplicated graph — the node set, directed edges (with an
+// address-family bitmask) and each origin AS's advertised prefixes — instead of
+// every AS path, keeping memory proportional to the graph rather than the dump.
+type Aggregate struct {
+	Nodes               map[uint32]struct{}
+	Links               map[LinkKey]uint32
+	Advertises          map[uint32]map[Route]struct{}
+	AdvertisesMulticast map[uint32]map[Route]struct{}
+	DataTimestamp       uint64
 }
 
-// NewProcessor creates a new MRT processor
-func NewProcessor() *Processor {
-	return &Processor{}
-}
-
-// Process processes MRT data and returns the result.
-// isMulticast indicates whether this data came from a multicast MRT dump URL.
-func (p *Processor) Process(data []byte, isMulticast bool) (*Result, error) {
-	result := &Result{
-		ASPaths:             make([]ASPath, 0),
-		Advertises:          make(map[uint32][]Route),
-		AdvertisesMulticast: make(map[uint32][]Route),
+// NewAggregate returns an empty Aggregate ready for use.
+func NewAggregate() *Aggregate {
+	return &Aggregate{
+		Nodes:               make(map[uint32]struct{}),
+		Links:               make(map[LinkKey]uint32),
+		Advertises:          make(map[uint32]map[Route]struct{}),
+		AdvertisesMulticast: make(map[uint32]map[Route]struct{}),
 	}
+}
 
-	reader := bytes.NewReader(data)
-	for reader.Len() > 0 {
-		// Read MRT header
-		header := make([]byte, 12)
-		if _, err := reader.Read(header); err != nil {
-			return nil, fmt.Errorf("failed to read MRT header: %v", err)
+// addRoute records an origin AS's advertised prefix, deduplicating in O(1).
+func (a *Aggregate) addRoute(originAS uint32, route Route, multicast bool) {
+	table := a.Advertises
+	if multicast {
+		table = a.AdvertisesMulticast
+	}
+	set := table[originAS]
+	if set == nil {
+		set = make(map[Route]struct{})
+		table[originAS] = set
+	}
+	set[route] = struct{}{}
+}
+
+// Merge folds another Aggregate into this one.
+func (a *Aggregate) Merge(b *Aggregate) {
+	for asn := range b.Nodes {
+		a.Nodes[asn] = struct{}{}
+	}
+	for key, af := range b.Links {
+		a.Links[key] |= af
+	}
+	mergeRoutes(a.Advertises, b.Advertises)
+	mergeRoutes(a.AdvertisesMulticast, b.AdvertisesMulticast)
+	if a.DataTimestamp == 0 {
+		a.DataTimestamp = b.DataTimestamp
+	}
+}
+
+func mergeRoutes(dst, src map[uint32]map[Route]struct{}) {
+	for asn, routes := range src {
+		if existing := dst[asn]; existing != nil {
+			for r := range routes {
+				existing[r] = struct{}{}
+			}
+		} else {
+			// Adopt the source set directly when absent to avoid re-hashing.
+			dst[asn] = routes
+		}
+	}
+}
+
+// Parse consumes an MRT stream, folding each RIB entry into agg on the fly.
+// It reads one message at a time, so peak memory is a single MRT record rather
+// than the whole (decompressed) dump. isMulticast marks the entire stream as
+// originating from a multicast collector.
+func Parse(r io.Reader, isMulticast bool, agg *Aggregate) error {
+	br := bufio.NewReaderSize(r, 1<<20)
+	var header [12]byte
+	var body []byte
+
+	for {
+		if _, err := io.ReadFull(br, header[:]); err != nil {
+			if err == io.EOF {
+				return nil // clean end at a record boundary
+			}
+			return fmt.Errorf("read MRT header: %w", err)
 		}
 
 		timestamp := binary.BigEndian.Uint32(header[0:4])
@@ -68,348 +134,262 @@ func (p *Processor) Process(data []byte, isMulticast bool) (*Result, error) {
 		subType := binary.BigEndian.Uint16(header[6:8])
 		length := binary.BigEndian.Uint32(header[8:12])
 
-		// Read message body
-		body := make([]byte, length)
-		if _, err := reader.Read(body); err != nil {
-			return nil, fmt.Errorf("failed to read MRT body: %v", err)
+		// Reuse the body buffer across messages; parsing never retains it.
+		if cap(body) < int(length) {
+			body = make([]byte, length)
+		} else {
+			body = body[:length]
+		}
+		if _, err := io.ReadFull(br, body); err != nil {
+			return fmt.Errorf("read MRT body (len %d): %w", length, err)
 		}
 
-		// Process different types of messages
-		switch msgType {
-		case 13: // TABLE_DUMP_V2
-			if err := p.processTableDumpV2(subType, body, result, isMulticast); err != nil {
-				return nil, err
+		if agg.DataTimestamp == 0 {
+			agg.DataTimestamp = uint64(timestamp)
+		}
+
+		if msgType == mrtTypeTableDumpV2 {
+			if err := parseTableDumpV2(subType, body, isMulticast, agg); err != nil {
+				return err
 			}
 		}
-
-		// Set metadata
-		if result.Metadata == nil {
-			result.Metadata = &Metadata{
-				Timestamp: uint64(timestamp),
-			}
-		}
-
-		// Help GC by clearing the body after processing
-		body = nil
 	}
-
-	return result, nil
 }
 
-// processTableDumpV2 processes TABLE_DUMP_V2 type messages
-func (p *Processor) processTableDumpV2(subType uint16, data []byte, result *Result, isMulticast bool) error {
-	reader := bytes.NewReader(data)
-
-	finalIsMulticast := isMulticast || subType == 3 || subType == 5 || subType == 9 || subType == 11
-
+func parseTableDumpV2(subType uint16, data []byte, streamMulticast bool, agg *Aggregate) error {
 	switch subType {
-	case 1: // PEER_INDEX_TABLE
-		// Skip peer index table
+	case subRIBIPv4Unicast, subRIBIPv4Multicast, subRIBIPv6Unicast, subRIBIPv6Multicast,
+		subRIBIPv4UnicastAdd, subRIBIPv4MulticastAdd, subRIBIPv6UnicastAdd, subRIBIPv6MulticastAdd:
+		return parseRIBEntry(subType, data, streamMulticast, agg)
+	default:
+		// PEER_INDEX_TABLE and any other subtype carry no route we consume.
 		return nil
-	case 2: // RIB_IPV4_UNICAST
-		fallthrough
-	case 3: // RIB_IPV4_MULTICAST
-		fallthrough
-	case 4: // RIB_IPV6_UNICAST
-		fallthrough
-	case 5: // RIB_IPV6_MULTICAST
-		fallthrough
-	case 8: // RIB_IPV4_UNICAST_ADDPATH
-		fallthrough
-	case 9: // RIB_IPV4_MULTICAST_ADDPATH
-		fallthrough
-	case 10: // RIB_IPV6_UNICAST_ADDPATH
-		fallthrough
-	case 11: // RIB_IPV6_MULTICAST_ADDPATH
-		return p.processRIBEntry(subType, reader, result, finalIsMulticast)
 	}
-
-	return nil
 }
 
-// processRIBEntry processes RIB entries
-func (p *Processor) processRIBEntry(subType uint16, reader *bytes.Reader, result *Result, isMulticast bool) error {
-	// Read sequence number (skip)
-	var seqNum uint32
-	if err := binary.Read(reader, binary.BigEndian, &seqNum); err != nil {
-		return fmt.Errorf("EOF at seqNum: %w", err)
+func parseRIBEntry(subType uint16, data []byte, streamMulticast bool, agg *Aggregate) error {
+	c := cursor{b: data}
+
+	seq, ok := c.u32()
+	if !ok {
+		return fmt.Errorf("EOF at seqNum")
+	}
+	prefixLen, ok := c.u8()
+	if !ok {
+		return fmt.Errorf("EOF at prefixLen")
+	}
+	prefixRaw, ok := c.take(int((prefixLen + 7) / 8))
+	if !ok {
+		return fmt.Errorf("prefix length %d bits exceeds remaining %d bytes", prefixLen, c.remaining())
 	}
 
-	// Read prefix length
-	var prefixLen uint8
-	if err := binary.Read(reader, binary.BigEndian, &prefixLen); err != nil {
-		return fmt.Errorf("EOF at prefixLen: %w", err)
+	isV6 := !isIPv4Subtype(subType)
+	multicast := streamMulticast || isMulticastSubtype(subType)
+	af := addressFamily(isV6, multicast)
+	route := decodePrefix(prefixRaw, uint32(prefixLen), isV6)
+
+	entryCount, ok := c.u16()
+	if !ok {
+		return fmt.Errorf("EOF at entryCount (seq %d)", seq)
 	}
 
-	// Calculate prefix bytes
-	prefixBytes := int((prefixLen + 7) / 8)
-	if prefixBytes > reader.Len() {
-		return fmt.Errorf("prefix length %d (bits: %d) exceeds remaining bytes %d",
-			prefixBytes, prefixLen, reader.Len())
-	}
-	prefix := make([]byte, prefixBytes)
-	if _, err := reader.Read(prefix); err != nil {
-		return err
-	}
-
-	// Parse IP address
-	var fullIP net.IP
-	if subType == 2 || subType == 3 || subType == 8 || subType == 9 { // IPv4
-		fullIP = make(net.IP, 4)
-		copy(fullIP, prefix)
-	} else { // IPv6
-		fullIP = make(net.IP, 16)
-		copy(fullIP, prefix)
-	}
-	var ipStr = fullIP.String()
-
-	// Read entry count
-	var entryCount uint16
-	if err := binary.Read(reader, binary.BigEndian, &entryCount); err != nil {
-		return fmt.Errorf("EOF at entryCount (Seq: %d): %w", seqNum, err)
-	}
-
-	// Process each entry
+	addPath := isAddPathSubtype(subType)
 	for i := uint16(0); i < entryCount; i++ {
-		// If ADDPATH type, read path identifier
-		if subType == 8 || subType == 9 || subType == 10 || subType == 11 {
-			var pathID uint32
-			if err := binary.Read(reader, binary.BigEndian, &pathID); err != nil {
-				return err
+		if addPath {
+			if !c.skip(4) { // path identifier
+				return fmt.Errorf("EOF at pathID (entry %d/%d)", i+1, entryCount)
 			}
 		}
-
-		if err := p.processRIBEntryDescriptor(reader, result, ipStr, uint32(prefixLen), subType, isMulticast); err != nil {
-			return fmt.Errorf("entry %d/%d error: %w", i+1, entryCount, err)
+		if err := parseRIBDescriptor(&c, route, af, multicast, agg); err != nil {
+			return fmt.Errorf("entry %d/%d: %w", i+1, entryCount, err)
 		}
 	}
-
 	return nil
 }
 
-// processRIBEntryDescriptor processes RIB entry descriptors
-func (p *Processor) processRIBEntryDescriptor(reader *bytes.Reader, result *Result, prefix string, prefixLen uint32, subType uint16, isMulticast bool) error {
-	// Skip peer index
-	var peerIndex uint16
-	if err := binary.Read(reader, binary.BigEndian, &peerIndex); err != nil {
-		return fmt.Errorf("EOF at peerIndex: %w", err)
+func parseRIBDescriptor(c *cursor, route Route, af uint32, multicast bool, agg *Aggregate) error {
+	if !c.skip(2) { // peer index
+		return fmt.Errorf("EOF at peerIndex")
 	}
-	// Skip timestamp
-	var originatedTime uint32
-	if err := binary.Read(reader, binary.BigEndian, &originatedTime); err != nil {
-		return fmt.Errorf("EOF at originatedTime: %w", err)
+	if !c.skip(4) { // originated time
+		return fmt.Errorf("EOF at originatedTime")
 	}
-
-	// Read attribute length
-	var attrLength uint16
-	if err := binary.Read(reader, binary.BigEndian, &attrLength); err != nil {
-		return fmt.Errorf("EOF at attrLength: %w", err)
+	attrLen, ok := c.u16()
+	if !ok {
+		return fmt.Errorf("EOF at attrLength")
 	}
-
-	// Read attributes
-	if attrLength == 0 {
-		log.Printf("[WARN] Found RIB Entry with 0 attribute length for prefix %s/%d, skipping", prefix, prefixLen)
+	if attrLen == 0 {
+		log.Printf("[WARN] RIB entry with 0 attribute length (prefix /%d), skipping", route.Length)
 		return nil
 	}
-	if int(attrLength) > reader.Len() {
-		return fmt.Errorf("attribute length %d exceeds remaining buffer %d", attrLength, reader.Len())
+	attrs, ok := c.take(int(attrLen))
+	if !ok {
+		return fmt.Errorf("attribute length %d exceeds remaining %d bytes", attrLen, c.remaining())
 	}
 
-	attributes := make([]byte, attrLength)
-	n, err := io.ReadFull(reader, attributes)
-	if err != nil {
-		return fmt.Errorf("failed to read %d bytes of attributes (read %d): %w", attrLength, n, err)
-	}
-
-	// Process attributes
-	attrReader := bytes.NewReader(attributes)
-	var asPath []uint32
-	var lastAS uint32
-
-	for attrReader.Len() > 0 {
-		var flags uint8
-		var typeCode uint8
-		if err := binary.Read(attrReader, binary.BigEndian, &flags); err != nil {
-			return err
-		}
-		if err := binary.Read(attrReader, binary.BigEndian, &typeCode); err != nil {
-			return err
-		}
-
-		// Read length
-		var length uint16
-		if (flags & 0x10) != 0 {
-			// Extended length
-			if err := binary.Read(attrReader, binary.BigEndian, &length); err != nil {
-				return err
-			}
-		} else {
-			var l uint8
-			if err := binary.Read(attrReader, binary.BigEndian, &l); err != nil {
-				return err
-			}
-			length = uint16(l)
-		}
-
-		// Process AS_PATH attribute
-		if typeCode == 2 {
-			asPath = make([]uint32, 0)
-			asPathData := make([]byte, length)
-			if _, err := attrReader.Read(asPathData); err != nil {
-				return err
-			}
-
-			asPathReader := bytes.NewReader(asPathData)
-			for asPathReader.Len() >= 2 {
-				var segType, segLength uint8
-				if err := binary.Read(asPathReader, binary.BigEndian, &segType); err != nil {
-					break
-				}
-				if err := binary.Read(asPathReader, binary.BigEndian, &segLength); err != nil {
-					break
-				}
-
-				expectedBytes := int(segLength) * 4
-				if asPathReader.Len() < expectedBytes {
-					break
-				}
-
-				// Read AS number
-				for i := uint8(0); i < segLength; i++ {
-					var asn uint32
-					if err := binary.Read(asPathReader, binary.BigEndian, &asn); err != nil {
-						break
-					}
-					asPath = append(asPath, asn)
-				}
-			}
-
-			if len(asPath) > 0 {
-				lastAS = asPath[len(asPath)-1]
-			}
-
-			// Help GC
-			asPathData = nil
-		} else {
-			// Skip other attributes
-			if _, err := attrReader.Seek(int64(length), 1); err != nil {
-				return err
-			}
-		}
-	}
-
-	// If AS path is found, add to result
-	if len(asPath) > 0 {
-		p.Lock()
-		// AF bitmask: 1=IPv4 unicast, 2=IPv6 unicast, 4=IPv4 multicast, 8=IPv6 multicast
-		// Determine IPv4 vs IPv6 from subtype; unicast vs multicast from collector source
-		isIPv4 := subType == 2 || subType == 3 || subType == 8 || subType == 9 // Otherwise IPv6 (type 4, 5, 10, 11)
-		var af uint32
-		if isMulticast {
-			if isIPv4 {
-				af = 4 // 0100 - IPv4 multicast
-			} else {
-				af = 8 // 1000 - IPv6 multicast
-			}
-		} else {
-			if isIPv4 {
-				af = 1 // 0001 - IPv4 unicast
-			} else {
-				af = 2 // 0010 - IPv6 unicast
-			}
-		}
-		result.ASPaths = append(result.ASPaths, ASPath{Path: asPath, AF: af})
-
-		// Create route entry
-		route := Route{
-			Length: prefixLen,
-		}
-
-		if isIPv4 {
-			route.IPType = "ipv4"
-			ip := net.ParseIP(prefix).To4()
-			if ip != nil {
-				route.IPValue = binary.BigEndian.Uint32(ip)
-			}
-		} else { // IPv6
-			route.IPType = "ipv6"
-			ip := net.ParseIP(prefix).To16()
-			if ip != nil {
-				high := binary.BigEndian.Uint64(ip[:8])
-				low := binary.BigEndian.Uint64(ip[8:])
-				route.IPValue = [4]uint32{
-					uint32(high >> 32),
-					uint32(high),
-					uint32(low >> 32),
-					uint32(low),
-				}
-			}
-		}
-
-		// Determine target map based on collector source
-		targetMap := result.Advertises
-		if isMulticast {
-			targetMap = result.AdvertisesMulticast
-		}
-
-		// Check for duplicates
-		routes := targetMap[lastAS]
-		isDuplicate := false
-		for _, r := range routes {
-			if r.Length == route.Length && r.IPType == route.IPType && r.IPValue == route.IPValue {
-				isDuplicate = true
-				break
-			}
-		}
-
-		// Only append if it's a new route
-		if !isDuplicate {
-			targetMap[lastAS] = append(targetMap[lastAS], route)
-		}
-		p.Unlock()
-	}
-
-	// Help GC
-	attributes = nil
-
+	foldAttributes(attrs, route, af, multicast, agg)
 	return nil
 }
 
-// MergeResults merges multiple processing results
-func MergeResults(results chan *Result) *Result {
-	merged := &Result{
-		ASPaths:             make([]ASPath, 0),
-		Advertises:          make(map[uint32][]Route),
-		AdvertisesMulticast: make(map[uint32][]Route),
+// foldAttributes scans path attributes for AS_PATH and folds its adjacency,
+// nodes and the advertised origin route straight into agg, without ever
+// materializing the full AS path.
+func foldAttributes(attrs []byte, route Route, af uint32, multicast bool, agg *Aggregate) {
+	c := cursor{b: attrs}
+	for c.remaining() >= 2 {
+		flags, _ := c.u8()
+		typeCode, _ := c.u8()
+
+		var length int
+		if flags&0x10 != 0 { // extended length
+			l, ok := c.u16()
+			if !ok {
+				return
+			}
+			length = int(l)
+		} else {
+			l, ok := c.u8()
+			if !ok {
+				return
+			}
+			length = int(l)
+		}
+
+		value, ok := c.take(length)
+		if !ok {
+			return
+		}
+		if typeCode == attrTypeASPath {
+			foldASPath(value, route, af, multicast, agg)
+			return // only AS_PATH is consumed; a route carries at most one
+		}
+	}
+}
+
+func foldASPath(data []byte, route Route, af uint32, multicast bool, agg *Aggregate) {
+	c := cursor{b: data}
+	var prev, last uint32
+	havePrev := false
+
+	// AS_PATH is a sequence of segments; ASNs are flattened in wire order and
+	// consecutive ASNs form directed edges (matching the collector's view).
+	for c.remaining() >= 2 {
+		c.skip(1) // segment type (AS_SET / AS_SEQUENCE): treated uniformly
+		segLen, _ := c.u8()
+		if c.remaining() < int(segLen)*4 {
+			break
+		}
+		for i := uint8(0); i < segLen; i++ {
+			asn, _ := c.u32()
+			agg.Nodes[asn] = struct{}{}
+			if havePrev && prev != asn { // skip self-loops (AS prepending)
+				agg.Links[LinkKey{Src: prev, Dst: asn}] |= af
+			}
+			prev, last, havePrev = asn, asn, true
+		}
 	}
 
-	for result := range results {
-		if result == nil {
-			continue
-		}
-
-		// Append AS paths
-		merged.ASPaths = append(merged.ASPaths, result.ASPaths...)
-
-		// Merge advertised routes
-		for asn, routes := range result.Advertises {
-			merged.Advertises[asn] = append(merged.Advertises[asn], routes...)
-		}
-
-		// Merge multicast advertised routes
-		for asn, routes := range result.AdvertisesMulticast {
-			merged.AdvertisesMulticast[asn] = append(merged.AdvertisesMulticast[asn], routes...)
-		}
-
-		if merged.Metadata == nil && result.Metadata != nil {
-			merged.Metadata = result.Metadata
-		}
-
-		// Help GC by clearing the processed result
-		result.ASPaths = nil
-		result.Advertises = nil
-		result.AdvertisesMulticast = nil
+	if havePrev {
+		agg.addRoute(last, route, multicast)
 	}
+}
 
-	return merged
+func decodePrefix(raw []byte, prefixLen uint32, isV6 bool) Route {
+	route := Route{Length: prefixLen, IsV6: isV6}
+	if isV6 {
+		var buf [16]byte
+		copy(buf[:], raw)
+		route.V6 = [4]uint32{
+			binary.BigEndian.Uint32(buf[0:4]),
+			binary.BigEndian.Uint32(buf[4:8]),
+			binary.BigEndian.Uint32(buf[8:12]),
+			binary.BigEndian.Uint32(buf[12:16]),
+		}
+	} else {
+		var buf [4]byte
+		copy(buf[:], raw)
+		route.V4 = binary.BigEndian.Uint32(buf[:])
+	}
+	return route
+}
+
+func addressFamily(isV6, multicast bool) uint32 {
+	switch {
+	case multicast && isV6:
+		return AFIPv6Multicast
+	case multicast:
+		return AFIPv4Multicast
+	case isV6:
+		return AFIPv6Unicast
+	default:
+		return AFIPv4Unicast
+	}
+}
+
+func isIPv4Subtype(s uint16) bool {
+	return s == subRIBIPv4Unicast || s == subRIBIPv4Multicast ||
+		s == subRIBIPv4UnicastAdd || s == subRIBIPv4MulticastAdd
+}
+
+func isMulticastSubtype(s uint16) bool {
+	return s == subRIBIPv4Multicast || s == subRIBIPv6Multicast ||
+		s == subRIBIPv4MulticastAdd || s == subRIBIPv6MulticastAdd
+}
+
+func isAddPathSubtype(s uint16) bool {
+	return s == subRIBIPv4UnicastAdd || s == subRIBIPv4MulticastAdd ||
+		s == subRIBIPv6UnicastAdd || s == subRIBIPv6MulticastAdd
+}
+
+// cursor is a bounds-checked big-endian reader over a byte slice, avoiding the
+// per-field allocations of bytes.Reader + binary.Read in the hot parse loop.
+type cursor struct {
+	b   []byte
+	off int
+}
+
+func (c *cursor) remaining() int { return len(c.b) - c.off }
+
+func (c *cursor) u8() (uint8, bool) {
+	if c.off >= len(c.b) {
+		return 0, false
+	}
+	v := c.b[c.off]
+	c.off++
+	return v, true
+}
+
+func (c *cursor) u16() (uint16, bool) {
+	if c.off+2 > len(c.b) {
+		return 0, false
+	}
+	v := binary.BigEndian.Uint16(c.b[c.off:])
+	c.off += 2
+	return v, true
+}
+
+func (c *cursor) u32() (uint32, bool) {
+	if c.off+4 > len(c.b) {
+		return 0, false
+	}
+	v := binary.BigEndian.Uint32(c.b[c.off:])
+	c.off += 4
+	return v, true
+}
+
+func (c *cursor) take(n int) ([]byte, bool) {
+	if n < 0 || c.off+n > len(c.b) {
+		return nil, false
+	}
+	s := c.b[c.off : c.off+n]
+	c.off += n
+	return s, true
+}
+
+func (c *cursor) skip(n int) bool {
+	if n < 0 || c.off+n > len(c.b) {
+		return false
+	}
+	c.off += n
+	return true
 }

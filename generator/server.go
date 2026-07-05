@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"compress/bzip2"
 	"context"
 	"crypto/tls"
@@ -64,6 +63,13 @@ type Server struct {
 	graph        *pb.Graph
 	graphMutex   sync.RWMutex
 	lastModified time.Time
+
+	// Generation control: genMu guards genCancel and genEpoch. genCancel cancels
+	// the currently running generation; genEpoch identifies the latest run so a
+	// preempted-but-still-finishing run knows to discard its stale result.
+	genMu     sync.Mutex
+	genCancel context.CancelFunc
+	genEpoch  uint64
 }
 
 // NewServer creates a new HTTP server
@@ -74,125 +80,85 @@ func NewServer(config *Config) *Server {
 	}
 }
 
-// MRTDownload represents a downloaded MRT file with its source metadata
-type MRTDownload struct {
-	Data        []byte
+// mrtSource identifies an MRT dump URL and whether it is a multicast collector.
+type mrtSource struct {
+	URL         string
 	IsMulticast bool
 }
 
-func downloadMRTFiles(ctx context.Context, config *Config) ([]MRTDownload, error) {
-	type urlEntry struct {
-		URL         string
-		IsMulticast bool
-	}
-	entries := []urlEntry{
-		{URL: config.MRTCollector.IPv4MRTDumpURL, IsMulticast: false},
-		{URL: config.MRTCollector.IPv6MRTDumpURL, IsMulticast: false},
-	}
-	if config.MRTCollector.IPv4MulticastMRTDumpURL != "" {
-		entries = append(entries, urlEntry{URL: config.MRTCollector.IPv4MulticastMRTDumpURL, IsMulticast: true})
-	}
-	if config.MRTCollector.IPv6MulticastMRTDumpURL != "" {
-		entries = append(entries, urlEntry{URL: config.MRTCollector.IPv6MulticastMRTDumpURL, IsMulticast: true})
-	}
-	results := make([]MRTDownload, 0, len(entries))
-	errCh := make(chan error, len(entries))
-	dataCh := make(chan MRTDownload, len(entries))
-
-	// Create a custom HTTP client with custom DNS if specified
+// newMRTClient builds the HTTP client used to stream MRT dumps, honoring the
+// TLS-skip and custom-DNS collector settings.
+func newMRTClient(config *Config) *http.Client {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: config.MRTCollector.InsecureSkipVerify,
 		},
 	}
 
-	// Set up custom DNS resolver if specified
 	if config.MRTCollector.CustomDNSServer != "" {
 		tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 			resolver := &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-					d := net.Dialer{
-						Timeout: time.Millisecond * time.Duration(10000),
-					}
+					d := net.Dialer{Timeout: 10 * time.Second}
 					return d.DialContext(ctx, network, config.MRTCollector.CustomDNSServer)
 				},
 			}
-			dialer := &net.Dialer{
-				Timeout:  10 * time.Second,
-				Resolver: resolver,
-			}
+			dialer := &net.Dialer{Timeout: 10 * time.Second, Resolver: resolver}
 			return dialer.DialContext(ctx, network, address)
 		}
 	}
 
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   5 * time.Minute,
+	// No overall client timeout: dumps are parsed while streaming, so the whole
+	// request can legitimately outlive a fixed deadline. The transport's dial
+	// timeout and the request context bound how long we can stall.
+	return &http.Client{Transport: tr}
+}
+
+// collectAggregate streams every configured MRT dump concurrently, parsing each
+// on the fly into its own Aggregate, and merges the results. Peak memory stays
+// proportional to the resulting graph rather than the (decompressed) dumps.
+func collectAggregate(ctx context.Context, config *Config) (*mrt.Aggregate, error) {
+	sources := []mrtSource{
+		{URL: config.MRTCollector.IPv4MRTDumpURL, IsMulticast: false},
+		{URL: config.MRTCollector.IPv6MRTDumpURL, IsMulticast: false},
 	}
+	if url := config.MRTCollector.IPv4MulticastMRTDumpURL; url != "" {
+		sources = append(sources, mrtSource{URL: url, IsMulticast: true})
+	}
+	if url := config.MRTCollector.IPv6MulticastMRTDumpURL; url != "" {
+		sources = append(sources, mrtSource{URL: url, IsMulticast: true})
+	}
+
+	client := newMRTClient(config)
+	aggCh := make(chan *mrt.Aggregate, len(sources))
+	errCh := make(chan error, len(sources))
 
 	var wg sync.WaitGroup
-	for _, entry := range entries {
+	for _, src := range sources {
 		wg.Add(1)
-		go func(entry urlEntry) {
+		go func(src mrtSource) {
 			defer wg.Done()
-
-			req, err := http.NewRequestWithContext(ctx, "GET", entry.URL, nil)
-			if err != nil {
-				errCh <- fmt.Errorf("failed to create request for %s: %v", entry.URL, err)
+			agg := mrt.NewAggregate()
+			if err := streamMRT(ctx, client, config, src, agg); err != nil {
+				errCh <- fmt.Errorf("%s: %w", src.URL, err)
 				return
 			}
-
-			if config.MRTCollector.Username != "" && config.MRTCollector.Password != "" {
-				req.SetBasicAuth(config.MRTCollector.Username, config.MRTCollector.Password)
-			}
-
-			resp, err := client.Do(req)
-			if err != nil {
-				errCh <- fmt.Errorf("failed to download %s: %v", entry.URL, err)
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				errCh <- fmt.Errorf("unexpected status code %d for %s", resp.StatusCode, entry.URL)
-				return
-			}
-
-			// is bzip2
-			br := bufio.NewReader(resp.Body)
-			header, err := br.Peek(3)
-
-			var reader io.Reader = br
-			if err == nil && string(header) == "BZh" {
-				reader = bzip2.NewReader(br)
-			}
-
-			// read data
-			var buffer bytes.Buffer
-			if _, err := io.Copy(&buffer, reader); err != nil {
-				errCh <- fmt.Errorf("failed to read data from %s: %v", entry.URL, err)
-				return
-			}
-
-			// Send the decompressed data with source tag
-			dataCh <- MRTDownload{Data: buffer.Bytes(), IsMulticast: entry.IsMulticast}
-
-			// Clear the buffer to help GC
-			buffer.Reset()
-		}(entry)
+			aggCh <- agg
+		}(src)
 	}
 
-	// Wait for all downloads to complete
 	go func() {
 		wg.Wait()
-		close(dataCh)
+		close(aggCh)
 		close(errCh)
 	}()
 
-	// Collect results and errors
-	for data := range dataCh {
-		results = append(results, data)
+	// Merge sequentially in this goroutine, so each per-source Aggregate is freed
+	// right after folding and no lock is needed on the shared result.
+	merged := mrt.NewAggregate()
+	for agg := range aggCh {
+		merged.Merge(agg)
 	}
 
 	for err := range errCh {
@@ -201,65 +167,91 @@ func downloadMRTFiles(ctx context.Context, config *Config) ([]MRTDownload, error
 		}
 	}
 
-	return results, nil
+	return merged, nil
 }
 
-// generateMap generates map data
-func (s *Server) generateMap() {
+// streamMRT downloads a single MRT dump and parses it on the fly into agg,
+// transparently decompressing bzip2 streams.
+func streamMRT(ctx context.Context, client *http.Client, config *Config, src mrtSource, agg *mrt.Aggregate) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, src.URL, nil)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	if config.MRTCollector.Username != "" && config.MRTCollector.Password != "" {
+		req.SetBasicAuth(config.MRTCollector.Username, config.MRTCollector.Password)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	br := bufio.NewReader(resp.Body)
+	var reader io.Reader = br
+	if header, err := br.Peek(3); err == nil && string(header) == "BZh" {
+		reader = bzip2.NewReader(br)
+	}
+
+	return mrt.Parse(reader, src.IsMulticast, agg)
+}
+
+// triggerGeneration starts a new map generation, forcibly cancelling any run
+// still in progress (e.g. one stalled on a slow network) so the newest request
+// always wins. It blocks until this run finishes, so callers that must not block
+// should invoke it in a goroutine.
+func (s *Server) triggerGeneration() {
+	s.genMu.Lock()
+	if s.genCancel != nil {
+		s.genCancel() // preempt the still-running previous generation
+	}
+	s.genEpoch++
+	epoch := s.genEpoch
+	ctx, cancel := context.WithCancel(context.Background())
+	s.genCancel = cancel
+	s.genMu.Unlock()
+
+	defer cancel() // release the context once this run returns
+	s.generateMap(ctx, epoch)
+}
+
+// generateMap generates map data for the given generation epoch. The result is
+// only committed if epoch is still the most recent when generation completes.
+func (s *Server) generateMap(ctx context.Context, epoch uint64) {
 	log.Printf("Map generation started at %s\n", time.Now().UTC().Format(http.TimeFormat))
 
-	ctx := context.Background()
 	start := time.Now()
 
-	// Concurrent download MRT files
-	mrtData, err := downloadMRTFiles(ctx, s.config)
+	// Stream and parse all MRT dumps on the fly into a single aggregate.
+	merged, err := collectAggregate(ctx, s.config)
 	if err != nil {
-		log.Printf("failed to download MRT files: %v\n", err)
+		if ctx.Err() != nil {
+			log.Println("Map generation cancelled (superseded by a newer run)")
+		} else {
+			log.Printf("failed to collect MRT data: %v\n", err)
+		}
 		return
 	}
 
-	// Concurrent process MRT data
-	processor := mrt.NewProcessor()
-	results := make(chan *mrt.Result, len(mrtData))
-	var wg sync.WaitGroup
-
-	for _, dl := range mrtData {
-		wg.Add(1)
-		go func(dl MRTDownload) {
-			defer wg.Done()
-			result, err := processor.Process(dl.Data, dl.IsMulticast)
-			if err != nil {
-				log.Printf("Error processing MRT data: %v\n", err)
-				return
-			}
-			results <- result
-		}(dl)
-	}
-
-	// Wait for all processing to complete and close the channel
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	// Merge results
-	merged := mrt.MergeResults(results)
-
 	// Check if we should skip generation on empty data
-	if s.config.DoNotGenerateOnEmpty && len(merged.ASPaths) == 0 && len(merged.Advertises) == 0 {
+	if s.config.DoNotGenerateOnEmpty && len(merged.Nodes) == 0 {
 		log.Println("No paths or routes found in MRT data and do_not_generate_on_empty is enabled. Skipping generation.")
 		return
 	}
 
-	// Concurrent get ASN descriptions
-	reg := registry.NewRegistry(s.config.RegistryPath)
-	uniqueASNs := make(map[uint32]struct{})
-	for _, asp := range merged.ASPaths {
-		for _, asn := range asp.Path {
-			uniqueASNs[asn] = struct{}{}
-		}
+	// Bail out before the CPU-heavy build if a newer run has already preempted us.
+	if ctx.Err() != nil {
+		log.Println("Map generation cancelled (superseded by a newer run)")
+		return
 	}
-	asnDescriptions := reg.GetDescriptions(uniqueASNs)
+
+	// Concurrent get ASN descriptions for every ASN seen in the graph.
+	reg := registry.NewRegistry(s.config.RegistryPath)
+	asnDescriptions := reg.GetDescriptions(merged.Nodes)
 
 	// Build Graph protobuf
 	graphPb := graph.BuildGraph(merged, asnDescriptions)
@@ -271,17 +263,24 @@ func (s *Server) generateMap() {
 		return
 	}
 
-	// Save to file
+	// Commit under genMu so a superseding run cannot interleave file writes, and
+	// so a run that was preempted mid-build discards its now-stale result.
+	s.genMu.Lock()
+	if epoch != s.genEpoch {
+		s.genMu.Unlock()
+		log.Println("Map generation superseded by a newer run; discarding result")
+		return
+	}
 	if err := os.WriteFile(s.config.OutputFile, data, 0644); err != nil {
+		s.genMu.Unlock()
 		log.Printf("failed to write output file: %v\n", err)
 		return
 	}
-
-	// Update in-memory data
 	s.graphMutex.Lock()
 	s.graph = graphPb
 	s.lastModified = time.Now()
 	s.graphMutex.Unlock()
+	s.genMu.Unlock()
 
 	// Execute post-generation command if specified
 	if s.config.PostGenerationCommand != "" {

@@ -26,37 +26,30 @@ type Graph struct {
 		Source uint32
 		Target uint32
 	}
-	// Adjacency list representation
-	adjList map[uint32][]uint32
+	// index maps an ASN to its node for O(1) lookup.
+	index map[uint32]*Node
 }
 
 // NewGraph creates a new graph
 func NewGraph() *Graph {
 	return &Graph{
-		Nodes: make([]*Node, 0),
-		Links: make([]struct {
-			Source uint32
-			Target uint32
-		}, 0),
-		adjList: make(map[uint32][]uint32),
+		index: make(map[uint32]*Node),
 	}
 }
 
 // AddNode adds a node
 func (g *Graph) AddNode(asn uint32) {
-	g.Nodes = append(g.Nodes, &Node{ASN: asn})
-	g.adjList[asn] = make([]uint32, 0)
+	node := &Node{ASN: asn}
+	g.Nodes = append(g.Nodes, node)
+	g.index[asn] = node
 }
 
-// AddLink adds a link
+// AddLink adds a directed link
 func (g *Graph) AddLink(source, target uint32) {
 	g.Links = append(g.Links, struct {
 		Source uint32
 		Target uint32
 	}{source, target})
-	// For directed graph, only add the outgoing edge
-	g.adjList[source] = append(g.adjList[source], target)
-	// Don't add the reverse edge for directed graph
 }
 
 // CalculateCentrality calculates all centrality metrics
@@ -109,16 +102,12 @@ func (g *Graph) calculateBetweennessAndCloseness() {
 		betweenness[node.ASN] = 0.0
 	}
 
-	// Initialize closeness values and all distances
-	allDistances := make(map[uint32]map[uint32]float64)
-
 	// For each node as a source
 	for _, sourceNode := range g.Nodes {
 		source := sourceNode.ASN
 
-		// Initialize distances for this source
-		distances := make(map[uint32]float64)
-		allDistances[source] = distances
+		// Distances for this source only; discarded once closeness is folded in.
+		distances := make(map[uint32]float64, len(g.Nodes))
 
 		// Initialize data structures for Brandes algorithm
 		pathVia := make(map[uint32][]uint32)
@@ -176,36 +165,28 @@ func (g *Graph) calculateBetweennessAndCloseness() {
 				betweenness[current] += delta[current]
 			}
 		}
+
+		// Closeness for this source depends only on its own distances, so fold
+		// it in here and let the distance map be garbage-collected afterwards.
+		sum := 0.0
+		count := 0
+		for target, distance := range distances {
+			if target != source && !math.IsInf(distance, 1) {
+				sum += distance
+				count++
+			}
+		}
+		if count > 0 {
+			sourceNode.Closeness = float64(count) / sum
+		}
 	}
 
 	// Scale betweenness values
 	n := float64(len(g.Nodes))
 	scale := 1.0 / ((n - 1) * (n - 2))
 
-	// Calculate closeness centrality
-	closeness := make(map[uint32]float64)
-	for source, distances := range allDistances {
-		sum := 0.0
-		count := 0
-
-		for target, distance := range distances {
-			if source != target && !math.IsInf(distance, 1) {
-				sum += distance
-				count++
-			}
-		}
-
-		if count > 0 {
-			closeness[source] = float64(count) / sum
-		} else {
-			closeness[source] = 0.0
-		}
-	}
-
-	// Update node values
 	for _, node := range g.Nodes {
 		node.Betweenness = betweenness[node.ASN] * scale
-		node.Closeness = closeness[node.ASN]
 	}
 }
 
@@ -259,10 +240,5 @@ func (g *Graph) calculateIndex() {
 
 // GetNode gets the node for a given ASN
 func (g *Graph) GetNode(asn uint32) *Node {
-	for _, node := range g.Nodes {
-		if node.ASN == asn {
-			return node
-		}
-	}
-	return nil
+	return g.index[asn]
 }

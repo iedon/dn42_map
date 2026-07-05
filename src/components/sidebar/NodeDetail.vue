@@ -27,7 +27,7 @@
           <td class="right">
             <a :href="`${DN42.explorerUrl}${r.route.replace('/', '_')}`" target="_blank">{{ $t('nodeDetail.registry') }}</a>&nbsp;&nbsp;
             <a :href="`${DN42.routeGraphsUrl}?ip_prefix=${encodeURIComponent(r.route)}&asn=${DN42.routeGraphInitiateAsn}`" target="_blank">{{ $t('nodeDetail.graph') }}</a>&nbsp;&nbsp;
-            <a :href="`${DN42.queryRoutesUrl}${r.route}`" target="_blank">{{ $t('nodeDetail.show') }}</a>
+            <a :href="`${DN42.queryRoutesUrl}?type=bird&target=${r.route}&bird=route_all`" target="_blank">{{ $t('nodeDetail.show') }}</a>
           </td>
         </tr>
       </tbody>

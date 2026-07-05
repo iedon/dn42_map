@@ -59,8 +59,8 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate map
-	go s.generateMap()
+	// Generate map, preempting any run still in progress.
+	go s.triggerGeneration()
 
 	w.WriteHeader(http.StatusAccepted)
 	setHeaders(w, "text/plain", nil)

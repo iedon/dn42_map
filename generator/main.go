@@ -104,7 +104,7 @@ func main() {
 
 	if config.API.Enabled {
 		// Generate map on startup
-		go server.generateMap()
+		go server.triggerGeneration()
 
 		// Start the HTTP server
 		log.Printf("Starting HTTP server on %s\n", config.API.ListenAddr)
@@ -113,6 +113,6 @@ func main() {
 		}
 	} else {
 		log.Println("API server mode is disabled. Generating map...")
-		server.generateMap()
+		server.triggerGeneration()
 	}
 }

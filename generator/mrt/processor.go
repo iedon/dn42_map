@@ -195,24 +195,22 @@ func parseRIBEntry(subType uint16, data []byte, streamMulticast bool, agg *Aggre
 
 	addPath := isAddPathSubtype(subType)
 	for i := uint16(0); i < entryCount; i++ {
-		if addPath {
-			if !c.skip(4) { // path identifier
-				return fmt.Errorf("EOF at pathID (entry %d/%d)", i+1, entryCount)
-			}
-		}
-		if err := parseRIBDescriptor(&c, route, af, multicast, agg); err != nil {
+		if err := parseRIBDescriptor(&c, route, af, multicast, addPath, agg); err != nil {
 			return fmt.Errorf("entry %d/%d: %w", i+1, entryCount, err)
 		}
 	}
 	return nil
 }
 
-func parseRIBDescriptor(c *cursor, route Route, af uint32, multicast bool, agg *Aggregate) error {
+func parseRIBDescriptor(c *cursor, route Route, af uint32, multicast, addPath bool, agg *Aggregate) error {
 	if !c.skip(2) { // peer index
 		return fmt.Errorf("EOF at peerIndex")
 	}
 	if !c.skip(4) { // originated time
 		return fmt.Errorf("EOF at originatedTime")
+	}
+	if addPath && !c.skip(4) { // path identifier, RFC 8050 section 4
+		return fmt.Errorf("EOF at pathID")
 	}
 	attrLen, ok := c.u16()
 	if !ok {

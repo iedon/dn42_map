@@ -2,7 +2,9 @@ package mrt
 
 import (
 	"bytes"
+	"compress/bzip2"
 	"encoding/binary"
+	"os"
 	"testing"
 )
 
@@ -48,6 +50,20 @@ func ribBody(seq uint32, prefixLen uint8, prefix []byte, entryCount uint16, attr
 		binary.Write(buf, binary.BigEndian, uint16(len(attrs)))
 		buf.Write(attrs)
 	}
+	return buf.Bytes()
+}
+
+func ribBodyAddPath(seq uint32, prefixLen uint8, prefix []byte, pathID uint32, attrs []byte) []byte {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, seq)
+	buf.WriteByte(prefixLen)
+	buf.Write(prefix)
+	binary.Write(buf, binary.BigEndian, uint16(1))
+	binary.Write(buf, binary.BigEndian, uint16(7))          // peer index
+	binary.Write(buf, binary.BigEndian, uint32(1700000000)) // originated time
+	binary.Write(buf, binary.BigEndian, pathID)
+	binary.Write(buf, binary.BigEndian, uint16(len(attrs)))
+	buf.Write(attrs)
 	return buf.Bytes()
 }
 
@@ -140,6 +156,47 @@ func TestParseMulticastCollectorFlag(t *testing.T) {
 	}
 	if _, ok := agg.AdvertisesMulticast[64513]; !ok {
 		t.Errorf("AdvertisesMulticast[64513] missing")
+	}
+}
+
+func TestParseAddPathDescriptorOrder(t *testing.T) {
+	attrs := asPathAttr(4242420001, 4242420002, 4242420003)
+	body := ribBodyAddPath(513, 48, []byte{0xfd, 0x42, 0x42, 0x42, 0, 1}, 0xdeadbeef, attrs)
+	stream := mrtRecord(1_700_000_001, mrtTypeTableDumpV2, subRIBIPv6UnicastAdd, body)
+
+	agg := NewAggregate()
+	if err := Parse(bytes.NewReader(stream), false, agg); err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	if got := agg.Links[LinkKey{Src: 4242420001, Dst: 4242420002}]; got != AFIPv6Unicast {
+		t.Errorf("first link AF = %d, want %d", got, AFIPv6Unicast)
+	}
+	if got := agg.Links[LinkKey{Src: 4242420002, Dst: 4242420003}]; got != AFIPv6Unicast {
+		t.Errorf("second link AF = %d, want %d", got, AFIPv6Unicast)
+	}
+	if got := len(agg.Advertises[4242420003]); got != 1 {
+		t.Errorf("origin routes = %d, want 1", got)
+	}
+}
+
+func TestParseBzip2Fixture(t *testing.T) {
+	path := os.Getenv("DN42_MAP_MRT_FIXTURE")
+	if path == "" {
+		t.Skip("DN42_MAP_MRT_FIXTURE is not set")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open fixture: %v", err)
+	}
+	defer file.Close()
+
+	agg := NewAggregate()
+	if err := Parse(bzip2.NewReader(file), false, agg); err != nil {
+		t.Fatalf("Parse fixture: %v", err)
+	}
+	if len(agg.Advertises) == 0 {
+		t.Fatal("fixture contains no advertised routes")
 	}
 }
 

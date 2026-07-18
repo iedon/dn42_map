@@ -53,6 +53,34 @@ Authentication information can be set via environment variables:
 - `MRT_BASIC_AUTH_USER`: Basic authentication username for the MRT server
 - `MRT_BASIC_AUTH_PASSWORD`: Basic authentication password for the MRT server
 
+## MRT collector sources
+
+Each MRT channel is a JSON URL array. Every source is downloaded and parsed
+concurrently, then its aggregate is merged with the other sources in the same
+generated graph. The channel controls route classification, so each URL must
+serve the matching GRC table family.
+
+```json
+"mrt_collector": {
+  "ipv4_mrt_dump_url": ["https://mrt-a.example/master4_latest.mrt.bz2"],
+  "ipv6_mrt_dump_url": ["https://mrt-a.example/master6_latest.mrt.bz2"],
+  "ipv4_multicast_mrt_dump_url": ["https://mrt-a.example/multicast4_latest.mrt.bz2"],
+  "ipv6_multicast_mrt_dump_url": ["https://mrt-a.example/multicast6_latest.mrt.bz2"]
+}
+```
+
+Add another URL to the corresponding array to combine multiple collectors.
+Empty arrays disable a channel; empty URL entries are rejected. The former
+single-string configuration is intentionally unsupported.
+
+The four URL override flags are repeatable and replace the matching configured
+array, for example:
+
+```bash
+./mapdn42 -ipv4_mrt_dump_url https://mrt-a.example/master4_latest.mrt.bz2 \
+  -ipv4_mrt_dump_url https://mrt-b.example/master4_latest.mrt.bz2
+```
+
 ## Performance Optimization
 
 1. **Concurrent Processing using Goroutines**

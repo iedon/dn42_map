@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,10 +81,40 @@ func NewServer(config *Config) *Server {
 	}
 }
 
-// mrtSource identifies an MRT dump URL and whether it is a multicast collector.
+// mrtSource identifies an MRT dump URL and the channel that classifies it.
 type mrtSource struct {
 	URL         string
 	IsMulticast bool
+}
+
+// mrtSources expands every configured channel into individual stream sources.
+// The configured channel, rather than an MRT subtype encountered in the dump,
+// is authoritative for unicast versus multicast classification.
+func mrtSources(collector Collector) ([]mrtSource, error) {
+	channels := []struct {
+		name        string
+		urls        []string
+		isMulticast bool
+	}{
+		{name: "ipv4_mrt_dump_url", urls: collector.IPv4MRTDumpURLs},
+		{name: "ipv6_mrt_dump_url", urls: collector.IPv6MRTDumpURLs},
+		{name: "ipv4_multicast_mrt_dump_url", urls: collector.IPv4MulticastMRTDumpURLs, isMulticast: true},
+		{name: "ipv6_multicast_mrt_dump_url", urls: collector.IPv6MulticastMRTDumpURLs, isMulticast: true},
+	}
+
+	sources := make([]mrtSource, 0,
+		len(collector.IPv4MRTDumpURLs)+len(collector.IPv6MRTDumpURLs)+
+			len(collector.IPv4MulticastMRTDumpURLs)+len(collector.IPv6MulticastMRTDumpURLs))
+	for _, channel := range channels {
+		for index, url := range channel.urls {
+			url = strings.TrimSpace(url)
+			if url == "" {
+				return nil, fmt.Errorf("mrt_collector.%s[%d] is empty", channel.name, index)
+			}
+			sources = append(sources, mrtSource{URL: url, IsMulticast: channel.isMulticast})
+		}
+	}
+	return sources, nil
 }
 
 // newMRTClient builds the HTTP client used to stream MRT dumps, honoring the
@@ -119,15 +150,9 @@ func newMRTClient(config *Config) *http.Client {
 // on the fly into its own Aggregate, and merges the results. Peak memory stays
 // proportional to the resulting graph rather than the (decompressed) dumps.
 func collectAggregate(ctx context.Context, config *Config) (*mrt.Aggregate, error) {
-	sources := []mrtSource{
-		{URL: config.MRTCollector.IPv4MRTDumpURL, IsMulticast: false},
-		{URL: config.MRTCollector.IPv6MRTDumpURL, IsMulticast: false},
-	}
-	if url := config.MRTCollector.IPv4MulticastMRTDumpURL; url != "" {
-		sources = append(sources, mrtSource{URL: url, IsMulticast: true})
-	}
-	if url := config.MRTCollector.IPv6MulticastMRTDumpURL; url != "" {
-		sources = append(sources, mrtSource{URL: url, IsMulticast: true})
+	sources, err := mrtSources(config.MRTCollector)
+	if err != nil {
+		return nil, err
 	}
 
 	client := newMRTClient(config)

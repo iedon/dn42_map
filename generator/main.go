@@ -7,28 +7,46 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // Config structure
 type Config struct {
-	RegistryPath           string    `json:"registry_path"`
-	OutputFile             string    `json:"output_file"`
-	PostGenerationCommand  string    `json:"post_generation_command"`
-	DoNotGenerateOnEmpty   bool      `json:"do_not_generate_on_empty"`
-	MRTCollector           Collector `json:"mrt_collector"`
-	API                    API       `json:"api"`
+	RegistryPath          string    `json:"registry_path"`
+	OutputFile            string    `json:"output_file"`
+	PostGenerationCommand string    `json:"post_generation_command"`
+	DoNotGenerateOnEmpty  bool      `json:"do_not_generate_on_empty"`
+	MRTCollector          Collector `json:"mrt_collector"`
+	API                   API       `json:"api"`
 }
 
 // Collector configuration for MRT
 type Collector struct {
-	IPv4MRTDumpURL          string `json:"ipv4_mrt_dump_url"`
-	IPv6MRTDumpURL          string `json:"ipv6_mrt_dump_url"`
-	IPv4MulticastMRTDumpURL string `json:"ipv4_multicast_mrt_dump_url"`
-	IPv6MulticastMRTDumpURL string `json:"ipv6_multicast_mrt_dump_url"`
-	Username                string `json:"username"`
-	Password                string `json:"password"`
-	InsecureSkipVerify      bool   `json:"insecure_skip_verify"`
-	CustomDNSServer         string `json:"custom_dns_server"`
+	IPv4MRTDumpURLs          []string `json:"ipv4_mrt_dump_url"`
+	IPv6MRTDumpURLs          []string `json:"ipv6_mrt_dump_url"`
+	IPv4MulticastMRTDumpURLs []string `json:"ipv4_multicast_mrt_dump_url"`
+	IPv6MulticastMRTDumpURLs []string `json:"ipv6_multicast_mrt_dump_url"`
+	Username                 string   `json:"username"`
+	Password                 string   `json:"password"`
+	InsecureSkipVerify       bool     `json:"insecure_skip_verify"`
+	CustomDNSServer          string   `json:"custom_dns_server"`
+}
+
+// urlListFlag collects repeated command-line source overrides for one MRT
+// channel. Supplying a flag replaces that channel's configured source list.
+type urlListFlag []string
+
+func (urls *urlListFlag) String() string {
+	return strings.Join(*urls, ",")
+}
+
+func (urls *urlListFlag) Set(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fmt.Errorf("MRT source URL cannot be empty")
+	}
+	*urls = append(*urls, value)
+	return nil
 }
 
 // API service configuration
@@ -39,12 +57,21 @@ type API struct {
 }
 
 var (
-	configFile     = flag.String("config", "config.json", "Path to config file")
-	outputFile     = flag.String("output_file", "", "Force output file path")
-	ipv4MRTDumpURL = flag.String("ipv4_mrt_dump_url", "", "Force MRT Dump IPv4 URL")
-	ipv6MRTDumpURL = flag.String("ipv6_mrt_dump_url", "", "Force MRT Dump IPv6 URL")
-	disableAPI     = flag.Bool("disable_api", false, "Disable API server mode (only generate map without serving API)")
+	configFile               = flag.String("config", "config.json", "Path to config file")
+	outputFile               = flag.String("output_file", "", "Force output file path")
+	ipv4MRTDumpURLs          urlListFlag
+	ipv6MRTDumpURLs          urlListFlag
+	ipv4MulticastMRTDumpURLs urlListFlag
+	ipv6MulticastMRTDumpURLs urlListFlag
+	disableAPI               = flag.Bool("disable_api", false, "Disable API server mode (only generate map without serving API)")
 )
+
+func init() {
+	flag.Var(&ipv4MRTDumpURLs, "ipv4_mrt_dump_url", "Override IPv4 unicast MRT sources (repeatable)")
+	flag.Var(&ipv6MRTDumpURLs, "ipv6_mrt_dump_url", "Override IPv6 unicast MRT sources (repeatable)")
+	flag.Var(&ipv4MulticastMRTDumpURLs, "ipv4_multicast_mrt_dump_url", "Override IPv4 multicast MRT sources (repeatable)")
+	flag.Var(&ipv6MulticastMRTDumpURLs, "ipv6_multicast_mrt_dump_url", "Override IPv6 multicast MRT sources (repeatable)")
+}
 
 func loadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
@@ -81,13 +108,21 @@ func main() {
 		log.Printf("Overriding output file path with: %s\n", *outputFile)
 		config.OutputFile = *outputFile
 	}
-	if *ipv4MRTDumpURL != "" {
-		log.Printf("Overriding IPv4 MRT Dump URL with: %s\n", *ipv4MRTDumpURL)
-		config.MRTCollector.IPv4MRTDumpURL = *ipv4MRTDumpURL
+	if len(ipv4MRTDumpURLs) > 0 {
+		log.Printf("Overriding IPv4 unicast MRT sources with %d URL(s)\n", len(ipv4MRTDumpURLs))
+		config.MRTCollector.IPv4MRTDumpURLs = ipv4MRTDumpURLs
 	}
-	if *ipv6MRTDumpURL != "" {
-		log.Printf("Overriding IPv6 MRT Dump URL with: %s\n", *ipv6MRTDumpURL)
-		config.MRTCollector.IPv6MRTDumpURL = *ipv6MRTDumpURL
+	if len(ipv6MRTDumpURLs) > 0 {
+		log.Printf("Overriding IPv6 unicast MRT sources with %d URL(s)\n", len(ipv6MRTDumpURLs))
+		config.MRTCollector.IPv6MRTDumpURLs = ipv6MRTDumpURLs
+	}
+	if len(ipv4MulticastMRTDumpURLs) > 0 {
+		log.Printf("Overriding IPv4 multicast MRT sources with %d URL(s)\n", len(ipv4MulticastMRTDumpURLs))
+		config.MRTCollector.IPv4MulticastMRTDumpURLs = ipv4MulticastMRTDumpURLs
+	}
+	if len(ipv6MulticastMRTDumpURLs) > 0 {
+		log.Printf("Overriding IPv6 multicast MRT sources with %d URL(s)\n", len(ipv6MulticastMRTDumpURLs))
+		config.MRTCollector.IPv6MulticastMRTDumpURLs = ipv6MulticastMRTDumpURLs
 	}
 	if *disableAPI {
 		log.Println("API server mode disabled via command line flag")

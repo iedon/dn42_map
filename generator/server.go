@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -87,6 +88,14 @@ type mrtSource struct {
 	IsMulticast bool
 }
 
+// mrtResult is one source's complete contribution to a collection run.
+// Each worker owns its Aggregate until it sends this result.
+type mrtResult struct {
+	source    mrtSource
+	aggregate *mrt.Aggregate
+	err       error
+}
+
 // mrtSources expands every configured channel into individual stream sources.
 // The configured channel, rather than an MRT subtype encountered in the dump,
 // is authoritative for unicast versus multicast classification.
@@ -147,17 +156,21 @@ func newMRTClient(config *Config) *http.Client {
 }
 
 // collectAggregate streams every configured MRT dump concurrently, parsing each
-// on the fly into its own Aggregate, and merges the results. Peak memory stays
-// proportional to the resulting graph rather than the (decompressed) dumps.
+// on the fly into its own Aggregate, and merges successful results. A failed
+// source does not prevent map generation while at least one source succeeds.
+// Peak memory stays proportional to the resulting graph rather than the
+// (decompressed) dumps.
 func collectAggregate(ctx context.Context, config *Config) (*mrt.Aggregate, error) {
 	sources, err := mrtSources(config.MRTCollector)
 	if err != nil {
 		return nil, err
 	}
+	if len(sources) == 0 {
+		return nil, errors.New("no MRT sources configured")
+	}
 
 	client := newMRTClient(config)
-	aggCh := make(chan *mrt.Aggregate, len(sources))
-	errCh := make(chan error, len(sources))
+	results := make(chan mrtResult, len(sources))
 
 	var wg sync.WaitGroup
 	for _, src := range sources {
@@ -166,30 +179,39 @@ func collectAggregate(ctx context.Context, config *Config) (*mrt.Aggregate, erro
 			defer wg.Done()
 			agg := mrt.NewAggregate()
 			if err := streamMRT(ctx, client, config, src, agg); err != nil {
-				errCh <- fmt.Errorf("%s: %w", src.URL, err)
+				results <- mrtResult{source: src, err: err}
 				return
 			}
-			aggCh <- agg
+			results <- mrtResult{source: src, aggregate: agg}
 		}(src)
 	}
 
 	go func() {
 		wg.Wait()
-		close(aggCh)
-		close(errCh)
+		close(results)
 	}()
 
 	// Merge sequentially in this goroutine, so each per-source Aggregate is freed
 	// right after folding and no lock is needed on the shared result.
 	merged := mrt.NewAggregate()
-	for agg := range aggCh {
-		merged.Merge(agg)
+	succeeded := 0
+	failed := make([]error, 0)
+	for result := range results {
+		if result.err != nil {
+			err := fmt.Errorf("%s: %w", result.source.URL, result.err)
+			failed = append(failed, err)
+			log.Printf("MRT source failed; continuing with other sources: %v", err)
+			continue
+		}
+		merged.Merge(result.aggregate)
+		succeeded++
 	}
 
-	for err := range errCh {
-		if err != nil {
-			return nil, err
-		}
+	if succeeded == 0 {
+		return nil, fmt.Errorf("all %d configured MRT sources failed: %w", len(sources), errors.Join(failed...))
+	}
+	if len(failed) > 0 {
+		log.Printf("MRT collection completed with partial data: %d/%d sources succeeded", succeeded, len(sources))
 	}
 
 	return merged, nil

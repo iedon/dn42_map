@@ -73,6 +73,11 @@ Add another URL to the corresponding array to combine multiple collectors.
 Empty arrays disable a channel; empty URL entries are rejected. The former
 single-string configuration is intentionally unsupported.
 
+Each source is isolated: an HTTP, decompression, or MRT parsing failure is
+logged and does not block generation from the other successful sources. A new
+map is written only when at least one source succeeds; if every source fails,
+the existing `map.bin` is left unchanged.
+
 The four URL override flags are repeatable and replace the matching configured
 array, for example:
 

@@ -139,3 +139,46 @@ func TestCollectAggregateReadsEveryConfiguredSource(t *testing.T) {
 		}
 	}
 }
+
+func TestCollectAggregateUsesSuccessfulSourcesWhenAnotherFails(t *testing.T) {
+	var mu sync.Mutex
+	requests := make(map[string]int)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests[r.URL.Path]++
+		mu.Unlock()
+
+		if r.URL.Path == "/unavailable" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	config := &Config{MRTCollector: Collector{
+		IPv4MRTDumpURLs: []string{ts.URL + "/available", ts.URL + "/unavailable"},
+	}}
+	if _, err := collectAggregate(context.Background(), config); err != nil {
+		t.Fatalf("collectAggregate rejected partial MRT data: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if requests["/available"] != 1 || requests["/unavailable"] != 1 {
+		t.Errorf("requests = %#v, want one request to each source", requests)
+	}
+}
+
+func TestCollectAggregateFailsWhenEverySourceFails(t *testing.T) {
+	ts := httptest.NewServer(http.NotFoundHandler())
+	defer ts.Close()
+
+	config := &Config{MRTCollector: Collector{
+		IPv4MRTDumpURLs: []string{ts.URL + "/unavailable-a"},
+		IPv6MRTDumpURLs: []string{ts.URL + "/unavailable-b"},
+	}}
+	if _, err := collectAggregate(context.Background(), config); err == nil {
+		t.Fatal("collectAggregate accepted a collection with no successful sources")
+	}
+}
